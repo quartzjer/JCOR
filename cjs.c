@@ -117,17 +117,9 @@ size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
     // write cbor JSON tag
   }else{
     // parse number, write cbor int
-  }
-
-  switch(in[0])
-  {
-    case '{': {
-    } break;
-    case '[': {
-      // count items, write cbor array+len, recurse each item
-    } break;
-    default: {
-    }
+    long num = strtol((const char*)in,NULL,10);
+    if(num < 0) outlen = ctype(out,CB0R_NEG,(uint32_t)(~num));
+    else outlen = ctype(out,CB0R_INT,(uint32_t)num);
   }
 
   return outlen;
