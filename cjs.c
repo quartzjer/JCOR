@@ -61,6 +61,33 @@ int save(char *file, uint8_t *bin, size_t len)
   return (wrote == len)?0:-1;
 }
 
+size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
+{
+  size_t outlen = 0;
+  switch(in[0])
+  {
+    case '{': {
+      // count kv pairs, write cbor map+count, recurse each kv
+    } break;
+    case '[': {
+      // count items, write cbor array+len, recurse each item
+    } break;
+    case '"': {
+      // write cbor UTF8
+    } break;
+    default: {
+      if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen))
+      {
+        // write cbor JSON tag
+      }else{
+        // parse number, write cbor int
+      }
+    }
+  }
+
+  return outlen;
+}
+
 int main(int argc, char **argv)
 {
   if(argc != 3)
@@ -73,8 +100,8 @@ int main(int argc, char **argv)
 
   size_t len = 0;
   uint8_t *bin = load(file_in,&len);
-  if(!bin) return -1;
-  uint8_t *bout = NULL;
+  if(!bin || len <= 0) return -1;
+  uint8_t *bout = malloc(len);
 
   if(strstr(file_in,".json"))
   {
