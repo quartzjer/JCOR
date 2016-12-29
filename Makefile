@@ -2,7 +2,7 @@
 all: cjs
 
 cjs: 
-	gcc -Wall -o cjs cjs.c  cb0r.c js0n.c
+	gcc -Wall -g -o cjs cjs.c  cb0r.c js0n.c
 
 clean:
 	rm cjs
