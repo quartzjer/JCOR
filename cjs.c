@@ -8,6 +8,23 @@
 #include "cb0r.h"
 #include "js0n.h"
 
+// copied from https://gist.github.com/yinyin/2027912
+#ifdef __APPLE__
+#include <libkern/OSByteOrder.h>
+#define htobe16(x) OSSwapHostToBigInt16(x)
+#define htole16(x) OSSwapHostToLittleInt16(x)
+#define be16toh(x) OSSwapBigToHostInt16(x)
+#define le16toh(x) OSSwapLittleToHostInt16(x)
+#define htobe32(x) OSSwapHostToBigInt32(x)
+#define htole32(x) OSSwapHostToLittleInt32(x)
+#define be32toh(x) OSSwapBigToHostInt32(x)
+#define le32toh(x) OSSwapLittleToHostInt32(x)
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#define htole64(x) OSSwapHostToLittleInt64(x)
+#define be64toh(x) OSSwapBigToHostInt64(x)
+#define le64toh(x) OSSwapLittleToHostInt64(x)
+#endif	/* __APPLE__ */
+
 uint8_t *load(char *file, size_t *len)
 {
   uint8_t *buf;
@@ -61,7 +78,7 @@ int save(char *file, uint8_t *bin, size_t len)
   return (wrote == len)?0:-1;
 }
 
-size_t ctype(uint8_t *out, cb0r_e type, uint32_t value)
+size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
 {
   out[0] = type << 5;
   if(value <= 23)
@@ -69,20 +86,25 @@ size_t ctype(uint8_t *out, cb0r_e type, uint32_t value)
     out[0] |= value;
     return 1;
   }
-  if(value >= 65536)
+  if(value >= UINT32_MAX)
+  {
+    out[0] |= 27;
+    value = htobe64(value);
+    memcpy(out+1,&value,8);
+    return 9;
+  }
+  if(value > UINT16_MAX)
   {
     out[0] |= 26;
-    out[1] = value & 0xff000000;
-    out[2] = value & 0x00ff0000;
-    out[3] = value & 0x0000ff00;
-    out[4] = value & 0x000000ff;
+    value = htobe32(value);
+    memcpy(out+1,&value,4);
     return 5;
   }
-  if(value >= 256)
+  if(value >= UINT8_MAX)
   {
     out[0] |= 25;
-    out[1] = value & 0x0000ff00;
-    out[2] = value & 0x000000ff;
+    value = htobe16(value);
+    memcpy(out+1,&value,2);
     return 3;
   }
   out[0] |= 24;
@@ -123,9 +145,9 @@ size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
     // write cbor JSON tag to preserve fractions/exponents
   }else{
     // parse number, write cbor int
-    long num = strtol((const char*)in,NULL,10);
-    if(num < 0) outlen = ctype(out,CB0R_NEG,(uint32_t)(~num));
-    else outlen = ctype(out,CB0R_INT,(uint32_t)num);
+    long long num = strtoll((const char*)in,NULL,10);
+    if(num < 0) outlen = ctype(out,CB0R_NEG,(uint64_t)(~num));
+    else outlen = ctype(out,CB0R_INT,(uint64_t)num);
   }
 
   return outlen;
