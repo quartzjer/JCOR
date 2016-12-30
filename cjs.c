@@ -113,8 +113,14 @@ size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
     outlen = ctype(out,CB0R_UTF8,inlen);
     memcpy(out+outlen,in,inlen);
     outlen += inlen;
+  }else if(memcmp(in,"false",inlen) == 0){
+    outlen = ctype(out,CB0R_SIMPLE,CB0R_FALSE);
+  }else if(memcmp(in,"true",inlen) == 0){
+    outlen = ctype(out,CB0R_SIMPLE,CB0R_TRUE);
+  }else if(memcmp(in,"null",inlen) == 0){
+    outlen = ctype(out,CB0R_SIMPLE,CB0R_NULL);
   }else if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen)){
-    // write cbor JSON tag
+    // write cbor JSON tag to preserve fractions/exponents
   }else{
     // parse number, write cbor int
     long num = strtol((const char*)in,NULL,10);

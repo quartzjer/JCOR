@@ -1,1 +1,1 @@
-£cmapevalueearray„conectwoethree*cneg8)
+¥cmapevalueearray„conectwoethree*dboolõcneg8)fsimpleƒôö`

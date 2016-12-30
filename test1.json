@@ -6,5 +6,7 @@
     "three",
     42
   ],
-  "neg": -42
+  "bool":true,
+  "neg": -42,
+  "simple":[false, null, ""]
 }

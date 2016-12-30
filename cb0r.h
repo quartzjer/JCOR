@@ -17,16 +17,21 @@ typedef enum {
   CB0R_ARRAY  ,
   CB0R_MAP    ,
   CB0R_TAG    ,
-  CB0R_SIMPLE ,
+  CB0R_SIMPLE , // 7, last of the major types
+
+  // the simple values
+  CB0R_FALSE = 20 ,
   CB0R_TRUE   ,
-  CB0R_FALSE  ,
   CB0R_NULL   ,
   CB0R_UNDEF  ,
   CB0R_FLOAT  ,
-  CB0R_ERR    , // if(type >= CB0R_ERR) 
+
+  // if(type >= CB0R_ERR) ...
+  CB0R_ERR = 32,
   CB0R_EPARSE , // invalid structure 
   CB0R_EBAD   , // invalid type byte
-  CB0R_EBIG     // unsupported size item
+  CB0R_EBIG   , // unsupported size item
+  CB0R_EMAX
 } cb0r_e;
 
 typedef struct cb0r_s
