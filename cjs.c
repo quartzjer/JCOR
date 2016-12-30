@@ -112,7 +112,7 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
+size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out)
 {
   size_t outlen = 0;
 
@@ -127,7 +127,7 @@ size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
     {
       size_t len = 0;
       const char *str = js0n(NULL,j,(char*)in,inlen,&len);
-      outlen += js2c((uint8_t*)str,len,out+outlen);
+      outlen += js2cb((uint8_t*)str,len,out+outlen);
     }
 
   }else if(in[inlen] == '"'){ // hack around js0n wart
@@ -153,6 +153,66 @@ size_t js2c(uint8_t *in, size_t inlen, uint8_t *out)
   return outlen;
 }
 
+size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
+{
+  size_t outlen = 0;
+  cb0r_s res = {0,};
+  uint8_t *end = cb0r(in,in+inlen,skip,&res);
+  switch(res.type)
+  {
+    case CB0R_INT: {
+      // TODO 64bit nums
+      outlen = sprintf(out,"%u",res.value);
+    } break;
+    case CB0R_NEG: {
+      outlen = sprintf(out,"-%u",res.value+1);
+    } break;
+    case CB0R_BYTE: {
+      // TODO for dictionary
+    } break;
+    case CB0R_UTF8: {
+      outlen = sprintf(out,"\"%.*s\"",res.length,res.start);
+    } break;
+    case CB0R_ARRAY: {
+      outlen += sprintf(out+outlen,"[");
+      for(uint32_t i=0;i<res.count;i++)
+      {
+        if(i) outlen += sprintf(out+outlen,",");
+        outlen += cb2js(res.start,end-res.start,out+outlen,i);
+      }
+      outlen += sprintf(out+outlen,"]");
+    } break;
+    case CB0R_MAP: {
+      outlen += sprintf(out+outlen,"{");
+      for(uint32_t i=0;i<res.count;i++)
+      {
+        if(i) outlen += sprintf(out+outlen,",");
+        outlen += cb2js(res.start,end-res.start,out+outlen,i*2);
+        outlen += sprintf(out+outlen,":");
+        outlen += cb2js(res.start,end-res.start,out+outlen,(i*2)+1);
+      }
+      outlen += sprintf(out+outlen,"}");
+    } break;
+    case CB0R_TAG: {
+      // TODO for raw/b64u
+    } break;
+    case CB0R_FALSE: {
+      outlen = sprintf(out,"false");
+    } break;
+    case CB0R_TRUE: {
+      outlen = sprintf(out,"true");
+    } break;
+    case CB0R_NULL: {
+      outlen = sprintf(out,"null");
+    } break;
+    default: {
+      printf("unsupported type: %u\n",res.type);
+    } break;
+
+  }
+  return outlen;
+}
+
 int main(int argc, char **argv)
 {
   if(argc != 3)
@@ -166,16 +226,17 @@ int main(int argc, char **argv)
   size_t lin = 0, lout = 0;
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
-  uint8_t *bout = malloc(lin);
+  uint8_t *bout = NULL;
 
   if(strstr(file_in,".json"))
   {
-    lout = js2c(bin,lin,bout);
+    bout = malloc(lin);
+    lout = js2cb(bin,lin,bout);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
-    cb0r_s res = {0,};
-    uint8_t *end = cb0r(bin,bin+lin,0,&res);
-    printf("type %d len %ld\n",res.type,end-bin);
+    bout = malloc(4*lin); // just bulk buffer space for now
+    lout = cb2js(bin,lin,(char*)bout,0);
+    printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .cjs: %s\n",file_in);
     return -1;
