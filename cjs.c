@@ -162,16 +162,16 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
   {
     case CB0R_INT: {
       // TODO 64bit nums
-      outlen = sprintf(out,"%u",res.value);
+      outlen = sprintf(out,"%llu",res.value);
     } break;
     case CB0R_NEG: {
-      outlen = sprintf(out,"-%u",res.value+1);
+      outlen = sprintf(out,"-%llu",res.value+1);
     } break;
     case CB0R_BYTE: {
       // TODO for dictionary
     } break;
     case CB0R_UTF8: {
-      outlen = sprintf(out,"\"%.*s\"",res.length,res.start);
+      outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start);
     } break;
     case CB0R_ARRAY: {
       outlen += sprintf(out+outlen,"[");
