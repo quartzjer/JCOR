@@ -1,4 +1,4 @@
-# CJS - CBOR JSON Serialization
+# CJS - Constrained JSON Serialization
 
 ## Scope
 
