@@ -7,6 +7,7 @@
 #include <string.h>
 #include "cb0r.h"
 #include "js0n.h"
+#include "base64.h"
 
 // copied from https://gist.github.com/yinyin/2027912
 #ifdef __APPLE__
@@ -112,7 +113,7 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out)
+size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
 {
   size_t outlen = 0;
 
@@ -127,14 +128,34 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out)
     {
       size_t len = 0;
       const char *str = js0n(NULL,j,(char*)in,inlen,&len);
-      outlen += js2cb((uint8_t*)str,len,out+outlen);
+      outlen += js2cb((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0));
     }
 
-  }else if(in[inlen] == '"'){ // hack around js0n wart
-    // write cbor UTF8
-    outlen = ctype(out,CB0R_UTF8,inlen);
-    memcpy(out+outlen,in,inlen);
-    outlen += inlen;
+  }else if(in[inlen] == '"'){ // js0n type detection pattern :/
+    // check if is base64
+    uint32_t b64 = 0;
+    if(!iskey && (b64 = base64_decoder((char*)in,inlen,NULL)))
+    {
+      // write cbor tag and byte string
+      outlen = ctype(out,CB0R_TAG,21);
+      outlen += ctype(out+outlen,CB0R_BYTE,b64);
+      base64_decoder((char*)in,inlen,out+outlen);
+      // validate exact match using out as buffer
+      base64_encoder(out+outlen,b64,(char*)(out+outlen+b64));
+      if(memcmp(out+outlen+b64,in,inlen) == 0)
+      {
+        outlen += b64;
+      }else{
+        b64 = 0;
+      }
+    }
+    if(b64 == 0)
+    {
+      // write cbor UTF8
+      outlen = ctype(out,CB0R_UTF8,inlen);
+      memcpy(out+outlen,in,inlen);
+      outlen += inlen;
+    }
   }else if(memcmp(in,"false",inlen) == 0){
     outlen = ctype(out,CB0R_SIMPLE,CB0R_FALSE);
   }else if(memcmp(in,"true",inlen) == 0){
@@ -142,7 +163,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out)
   }else if(memcmp(in,"null",inlen) == 0){
     outlen = ctype(out,CB0R_SIMPLE,CB0R_NULL);
   }else if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen)){
-    // write cbor JSON tag to preserve fractions/exponents
+    // TODO write cbor tag 4 for decimal floats/exponents
   }else{
     // parse number, write cbor int
     long long num = strtoll((const char*)in,NULL,10);
@@ -161,7 +182,6 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
   switch(res.type)
   {
     case CB0R_INT: {
-      // TODO 64bit nums
       outlen = sprintf(out,"%llu",res.value);
     } break;
     case CB0R_NEG: {
@@ -194,7 +214,15 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
       outlen += sprintf(out+outlen,"}");
     } break;
     case CB0R_TAG: {
-      // TODO for raw/b64u
+      cb0r_s res2 = {0,};
+      cb0r(res.start,end,0,&res2);
+      if(res.value == 21 && res2.type == CB0R_BYTE)
+      {
+        out[0] = '"';
+        outlen = base64_encoder(res2.start,res2.length,out+1);
+        out[outlen+1] = '"';
+        outlen += 2;
+      }
     } break;
     case CB0R_FALSE: {
       outlen = sprintf(out,"false");
@@ -231,7 +259,7 @@ int main(int argc, char **argv)
   if(strstr(file_in,".json"))
   {
     bout = malloc(lin);
-    lout = js2cb(bin,lin,bout);
+    lout = js2cb(bin,lin,bout,false);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
     bout = malloc(4*lin); // just bulk buffer space for now
