@@ -74,15 +74,18 @@ int main(int argc, char **argv)
   size_t lin = 0, lout = 0;
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
-  uint8_t *bout = NULL;
+
+  // just bulk buffer working space
+  uint8_t *bout = malloc(4*lin);
 
   if(strstr(file_in,".json"))
   {
-    bout = malloc(lin);
     lout = js2cb(bin,lin,bout,false);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
+  }else if(strstr(file_in,".jwt")){
+    lout = jwt2cb(bin,lin,bout);
+    printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
-    bout = malloc(4*lin); // just bulk buffer space for now
     lout = cb2js(bin,lin,(char*)bout,0);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{

@@ -185,3 +185,35 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
   return outlen;
 }
 
+size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
+{
+  char *encoded = (char*)in;
+  char *end = encoded+(inlen-1);
+  
+  // make sure the dot separators are there
+  char *dot1 = memchr(encoded,'.',end-encoded);
+  if(!dot1 || dot1+1 >= end) return 0;
+  dot1++;
+  char *dot2 = memchr(dot1,'.',end-dot1);
+  if(!dot2 || (dot2+1) >= end) return 0;
+  dot2++;
+
+  uint8_t *buf = malloc(inlen); // scratch space
+  size_t outlen = ctype(out,CB0R_ARRAY,3);
+
+  size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
+  outlen += js2cb(buf, len, out+outlen, false);
+
+  len = base64_decoder(dot1, (dot2-dot1)-1, buf);
+  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false);
+  
+  outlen += ctype(out+outlen,CB0R_TAG,21);
+  len = base64_decoder(dot2, (end-dot2)+1, buf);
+  outlen += ctype(out+outlen,CB0R_BYTE,len);
+  memcpy(out+outlen,buf,len);
+  outlen += len;
+
+  free(buf);
+  return outlen;
+}
+
