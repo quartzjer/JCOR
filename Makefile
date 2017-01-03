@@ -1,14 +1,33 @@
+CC=gcc
+CFLAGS+=-g -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
+INCLUDE+=-Isrc
+HEADERS=$(wildcard src/*.h)
+SOURCES=$(wildcard src/*.c)
+OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
+BINS=$(wildcard bin/*.c)
+TESTSC=$(wildcard test/*.c)
+ALL=$(SOURCES) $(BINS) $(TESTSC)
+DEPS=$(patsubst %.c,%.o,$(ALL))
+TESTS=$(patsubst test/%.c,%,$(TESTSC))
+
 
 all: cjs
 
-cjs: 
-	gcc -Wall -g -Isrc -o bin/cjs bin/cjs.c  src/cb0r.c src/js0n.c src/base64.c
+%.o : %.c $(HEADERS)
+	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
-test: 
-	gcc -Wall -g -Isrc -o bin/test bin/cjs.c  src/cb0r.c src/js0n.c src/base64.c
-	./bin/test test/test1.json test/test1.cjs
+bin/% : test/%.o $(DEPS)
+	$(CC) $(INCLUDE) $(CFLAGS) $(patsubst bin/%,test/%.o,$@) -o $@ $(OBJECTS)
+
+cjs: $(DEPS)
+	$(CC) $(CFLAGS) -o bin/cjs bin/cjs.o $(OBJECTS)
+
+test: cjs
+	./bin/cjs test/test1.json test/test1.cjs
 
 clean:
-	rm bin/cjs bin/test
+	rm -f bin/cjs
+	rm -f $(DEPS)
+
 
 .PHONY: all cjs clean test
