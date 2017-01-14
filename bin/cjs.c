@@ -63,24 +63,42 @@ int save(char *file, uint8_t *bin, size_t len)
 
 int main(int argc, char **argv)
 {
-  if(argc != 3)
+  if(argc < 3)
   {
     printf("Usage (args may be swapped): cjs file.json file.cjs\n");
     return -1;
   }
   char *file_in = argv[1];
   char *file_out = argv[2];
+  char *file_dict = (argc == 4)?argv[3]:NULL;
+
 
   size_t lin = 0, lout = 0;
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
+
+  cb0r_t dict = NULL;
+  cb0r_s dres = {0,};
+  if(file_dict)
+  {
+    size_t dlen = 0;
+    uint8_t *dbin = load(file_dict,&dlen);
+    if(!dbin || dlen <= 0 || !cb0r(dbin,dbin+dlen,0,&dres) || dres.type != CB0R_ARRAY)
+    {
+      printf("dictionary file invalid: %s\n",file_dict);
+      return -1;
+    }
+    dres.start = dbin;
+    dres.length = dlen;
+    dict = &dres;
+  }
 
   // just bulk buffer working space
   uint8_t *bout = malloc(4*lin);
 
   if(strstr(file_in,".json"))
   {
-    lout = js2cb(bin,lin,bout,false,NULL);
+    lout = js2cb(bin,lin,bout,false,dict);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
     lout = jwt2cb(bin,lin,bout);
