@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cjs.h"
-#include "cb0r.h"
 #include "js0n.h"
 #include "base64.h"
 
@@ -57,7 +56,7 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
+size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
 {
   size_t outlen = 0;
 
@@ -69,11 +68,8 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
     if(in[0] == '{')
     {
       outlen = ctype(out,CB0R_MAP,i/2);
-      size_t dlen = 0;
-      uint8_t *dict = dict_match(in,inlen,&dlen);
-      if(dict){
-        // TODO
-      }
+      cb0r_t d2 = dict_match(in,inlen);
+      if(d2) dict = d2;
     }else{
       outlen = ctype(out,CB0R_ARRAY,i);
     }
@@ -81,7 +77,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
     {
       size_t len = 0;
       const char *str = js0n(NULL,j,(char*)in,inlen,&len);
-      outlen += js2cb((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0));
+      outlen += js2cb((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0), dict);
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
@@ -104,11 +100,20 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
     }
     if(b64 == 0)
     {
-      // TODO check dictionary
-      // write cbor UTF8
-      outlen = ctype(out,CB0R_UTF8,inlen);
-      memcpy(out+outlen,in,inlen);
-      outlen += inlen;
+      // check dictionary
+      int32_t index = cb_geti(dict,in,inlen);
+      if(index > 0 && index < 256)
+      {
+        // cbor byte key to represent value
+        outlen = ctype(out,CB0R_BYTE,1);
+        out[outlen] = index;
+        outlen++;
+      }else{
+        // write cbor UTF8
+        outlen = ctype(out,CB0R_UTF8,inlen);
+        memcpy(out+outlen,in,inlen);
+        outlen += inlen;
+      }
     }
   }else if(memcmp(in,"false",inlen) == 0){
     outlen = ctype(out,CB0R_SIMPLE,CB0R_FALSE);
@@ -212,10 +217,10 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
   size_t outlen = ctype(out,CB0R_ARRAY,3);
 
   size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
-  outlen += js2cb(buf, len, out+outlen, false);
+  outlen += js2cb(buf, len, out+outlen, false, NULL);
 
   len = base64_decoder(dot1, (dot2-dot1)-1, buf);
-  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false);
+  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false, NULL);
   
   outlen += ctype(out+outlen,CB0R_TAG,21);
   len = base64_decoder(dot2, (end-dot2)+1, buf);
@@ -228,24 +233,25 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
 }
 
 // fetch utf8 string value at given index of cbor array
-uint8_t *cb_getv(uint8_t *in, size_t inlen, uint32_t index, size_t *len)
+bool cb_getv(cb0r_t array, uint32_t index, cb0r_t val)
 {
   cb0r_s res = {0,};
-  uint8_t *end = cb0r(in,in+inlen,0,&res);
-  if(res.type != CB0R_ARRAY) return NULL;
-  if(index >= res.count) return NULL;
+  uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
+  if(res.type != CB0R_ARRAY) return false;
+  if(index >= res.count) return false;
   end = cb0r(res.start,end,index,&res);
-  if(res.type != CB0R_UTF8) return NULL;
-  *len = res.length;
-  return res.start;
+  if(res.type != CB0R_UTF8) return false;
+  memcpy(val,&res,sizeof(cb0r_s));
+  return true;
 }
 
 
-// match string value in array and return index
-int32_t cb_geti(uint8_t *in, size_t inlen, uint8_t *value, size_t len)
+// match string value in array and return index (-1 if none)
+int32_t cb_geti(cb0r_t array, uint8_t *str, uint32_t len)
 {
+  if(!array || !str) return -1;
   cb0r_s res = {0,};
-  uint8_t *end = cb0r(in,in+inlen,0,&res);
+  uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
   if(res.type != CB0R_ARRAY) return -1;
   for(uint32_t i=0;i<res.count;i++)
   {
@@ -253,18 +259,19 @@ int32_t cb_geti(uint8_t *in, size_t inlen, uint8_t *value, size_t len)
     cb0r(res.start,end,i,&ires);
     if(ires.type != CB0R_UTF8) continue;
     if(ires.length != len) continue;
-    if(memcmp(value,ires.start,len) != 0) continue;
+    if(memcmp(str,ires.start,len) != 0) continue;
     return i;
   }
   return -1;
 }
 
-__weak uint8_t *dict_id(int32_t id, size_t *len)
+// app defines these to resolve a dictionary by id or by json object
+__weak cb0r_t dict_id(int32_t id)
 {
   return NULL;
 }
 
-__weak uint8_t *dict_match(uint8_t *obj, size_t objlen, size_t *len)
+__weak cb0r_t dict_match(uint8_t *obj, size_t objlen)
 {
   return NULL;
 }

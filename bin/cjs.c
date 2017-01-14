@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    lout = js2cb(bin,lin,bout,false);
+    lout = js2cb(bin,lin,bout,false,NULL);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
     lout = jwt2cb(bin,lin,bout);
