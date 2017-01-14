@@ -66,8 +66,17 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
     // count items, write cbor map/array+count, recurse each k/v
     uint16_t i=0;
     for(;js0n(NULL,i,(char*)in,inlen,&outlen);i++);
-    if(in[0] == '{') outlen = ctype(out,CB0R_MAP,i/2);
-    else outlen = ctype(out,CB0R_ARRAY,i);
+    if(in[0] == '{')
+    {
+      outlen = ctype(out,CB0R_MAP,i/2);
+      size_t dlen = 0;
+      uint8_t *dict = dict_match(in,inlen,&dlen);
+      if(dict){
+        // TODO
+      }
+    }else{
+      outlen = ctype(out,CB0R_ARRAY,i);
+    }
     for(uint16_t j=0;j<i;j++)
     {
       size_t len = 0;
@@ -95,6 +104,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey)
     }
     if(b64 == 0)
     {
+      // TODO check dictionary
       // write cbor UTF8
       outlen = ctype(out,CB0R_UTF8,inlen);
       memcpy(out+outlen,in,inlen);
