@@ -217,3 +217,45 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
   return outlen;
 }
 
+// fetch utf8 string value at given index of cbor array
+uint8_t *cb_getv(uint8_t *in, size_t inlen, uint32_t index, size_t *len)
+{
+  cb0r_s res = {0,};
+  uint8_t *end = cb0r(in,in+inlen,0,&res);
+  if(res.type != CB0R_ARRAY) return NULL;
+  if(index >= res.count) return NULL;
+  end = cb0r(res.start,end,index,&res);
+  if(res.type != CB0R_UTF8) return NULL;
+  *len = res.length;
+  return res.start;
+}
+
+
+// match string value in array and return index
+int32_t cb_geti(uint8_t *in, size_t inlen, uint8_t *value, size_t len)
+{
+  cb0r_s res = {0,};
+  uint8_t *end = cb0r(in,in+inlen,0,&res);
+  if(res.type != CB0R_ARRAY) return -1;
+  for(uint32_t i=0;i<res.count;i++)
+  {
+    cb0r_s ires = {0,};
+    cb0r(res.start,end,i,&ires);
+    if(ires.type != CB0R_UTF8) continue;
+    if(ires.length != len) continue;
+    if(memcmp(value,ires.start,len) != 0) continue;
+    return i;
+  }
+  return -1;
+}
+
+__weak uint8_t *dict_id(int32_t id, size_t *len)
+{
+  return NULL;
+}
+
+__weak uint8_t *dict_match(uint8_t *obj, size_t objlen, size_t *len)
+{
+  return NULL;
+}
+

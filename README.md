@@ -95,3 +95,24 @@ Enable any JSON value to be serialized using CBOR such that it can be compatibly
 ┃                                    ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ```
+
+## Dictionaries
+
+braindump:
+
+* public dictionary ids are only uint's, private/custom only negative ints
+* 0 is never valid except as a key, value always the id of dictionary used in given map
+* 1-23 are standards-based dictionaries only
+* dictionary definition is an array containing the id as the first element and followed by the string values associated with their position in the array: [22,"one","two",...]
+* current dictionary is always inherited in sub-objects until another dictionary is set
+
+
+
+
+
+
+
+
+
+
+
