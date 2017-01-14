@@ -3,7 +3,7 @@
 #include "cb0r.h"
 
 size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict);
-size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip);
+size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict);
 
 size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out);
 

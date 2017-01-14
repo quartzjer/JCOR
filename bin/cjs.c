@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     lout = jwt2cb(bin,lin,bout);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
-    lout = cb2js(bin,lin,(char*)bout,0);
+    lout = cb2js(bin,lin,(char*)bout,0,dict);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .cjs: %s\n",file_in);

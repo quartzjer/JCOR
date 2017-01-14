@@ -133,7 +133,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
   return outlen;
 }
 
-size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
+size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
 {
   size_t outlen = 0;
   cb0r_s res = {0,};
@@ -147,8 +147,15 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
       outlen = sprintf(out,"-%llu",res.value+1);
     } break;
     case CB0R_BYTE: {
-      // TODO for dictionary
-    } break;
+      // dictionary expansion
+      cb0r_s str = {0,};
+      if(res.length != 1 || !cb_getv(dict,res.start[0],&str))
+      {
+        printf("not found in dictionary: %u\n",res.start[0]);
+        break;
+      }
+      memcpy(&res,&str,sizeof(cb0r_s));
+    } // fall through!
     case CB0R_UTF8: {
       outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start);
     } break;
@@ -157,7 +164,7 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
-        outlen += cb2js(res.start,end-res.start,out+outlen,i);
+        outlen += cb2js(res.start,end-res.start,out+outlen,i,dict);
       }
       outlen += sprintf(out+outlen,"]");
     } break;
@@ -166,9 +173,9 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip)
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
-        outlen += cb2js(res.start,end-res.start,out+outlen,i*2);
+        outlen += cb2js(res.start,end-res.start,out+outlen,i*2,dict);
         outlen += sprintf(out+outlen,":");
-        outlen += cb2js(res.start,end-res.start,out+outlen,(i*2)+1);
+        outlen += cb2js(res.start,end-res.start,out+outlen,(i*2)+1,dict);
       }
       outlen += sprintf(out+outlen,"}");
     } break;
