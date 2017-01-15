@@ -114,9 +114,9 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
   l_skip:
     if(count)
     {
-      // map is double array
-      if(start[0] & 0x20) end = cb0r(start+size+1,stop,(count*2)-1,NULL);
-      else end = cb0r(start+size+1,stop,count-1,NULL);
+      // double map for actual count
+      if(start[0] & 0x20) count <<= 1;
+      end = cb0r(start+size+1,stop,count-1,NULL);
     }else{
       end += size;
     }
@@ -138,14 +138,13 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
 
   // indefinite length wrapper
   l_until:
-    count = UINT32_MAX;
+    count = CB0R_STREAM;
     end = cb0r(start+1,stop,count,NULL);
     goto l_finish;
 
   l_break: {
-    if(skip != UINT32_MAX) goto l_eparse;
-    skip = 0;
-    goto l_done;
+    if(skip == CB0R_STREAM) return end;
+    goto l_eparse;
   }
 
   l_ebad:
@@ -166,13 +165,12 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
   l_finish: // only first 7 types
     type = (start[0] >> 5);
 
-  l_done:
-
   // done done, extract value if result requested
   if(!skip)
   {
     if(!result) return end;
     result->start = start+1;
+    result->end = end;
     result->type = type;
     result->value = 0;
     switch(type)
@@ -199,13 +197,27 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
             break;
           case 0:
             result->value = start[0] & 0x1f;
+            if(type == CB0R_TAG) switch(result->value)
+            {
+              case 0: result->type = CB0R_DATETIME; break;
+              case 1: result->type = CB0R_EPOCH; break;
+              case 2: result->type = CB0R_BIGNUM; break;
+              case 3: result->type = CB0R_BIGNEG; break;
+              case 4: result->type = CB0R_FRACTION; break;
+              case 5: result->type = CB0R_BIGFLOAT; break;
+              case 21: result->type = CB0R_BASE64URL; break;
+              case 22: result->type = CB0R_BASE64; break;
+              case 23: result->type = CB0R_HEX; break;
+              case 24: result->type = CB0R_DATA; break;
+            }
         }
       } break;
 
       case CB0R_BYTE:
       case CB0R_UTF8: {
         result->start += size;
-        result->length = end - result->start;
+        if(count == CB0R_STREAM) result->count = count;
+        else result->length = end - result->start;
       } break;
 
       case CB0R_ARRAY:
@@ -218,18 +230,10 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
         result->value = (start[0] & 0x1f);
         switch(result->value)
         {
-          case 20:
-            result->type = CB0R_FALSE;
-            break;
-          case 21:
-            result->type = CB0R_TRUE;
-            break;
-          case 22:
-            result->type = CB0R_NULL;
-            break;
-          case 23:
-            result->type = CB0R_UNDEF;
-            break;
+          case 20: result->type = CB0R_FALSE; break;
+          case 21: result->type = CB0R_TRUE; break;
+          case 22: result->type = CB0R_NULL; break;
+          case 23: result->type = CB0R_UNDEF; break;
           case 24:
             if(start[1] >= 32) result->value = start[1];
             else result->type = CB0R_EBAD;
@@ -257,7 +261,8 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
   }
 
   // max means indefinite mode skip
-  if(skip != UINT32_MAX) skip--;
+  if(skip != CB0R_STREAM) skip--;
+  else if(result) result->count++;
 
   // tail recurse while skipping to not stack bloat
   return cb0r(end, stop, skip, result);

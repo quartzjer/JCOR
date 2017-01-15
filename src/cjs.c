@@ -116,11 +116,11 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
       }
     }
   }else if(memcmp(in,"false",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,CB0R_FALSE);
+    outlen = ctype(out,CB0R_SIMPLE,20);
   }else if(memcmp(in,"true",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,CB0R_TRUE);
+    outlen = ctype(out,CB0R_SIMPLE,21);
   }else if(memcmp(in,"null",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,CB0R_NULL);
+    outlen = ctype(out,CB0R_SIMPLE,22);
   }else if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen)){
     // TODO write cbor tag 4 for decimal floats/exponents
   }else{
@@ -159,30 +159,23 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
     case CB0R_UTF8: {
       outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start);
     } break;
-    case CB0R_ARRAY: {
-      outlen += sprintf(out+outlen,"[");
+    case CB0R_ARRAY:
+    case CB0R_MAP: {
+      outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"{":"[");
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
         outlen += cb2js(res.start,end-res.start,out+outlen,i,dict);
-      }
-      outlen += sprintf(out+outlen,"]");
-    } break;
-    case CB0R_MAP: {
-      outlen += sprintf(out+outlen,"{");
-      for(uint32_t i=0;i<res.count;i++)
-      {
-        if(i) outlen += sprintf(out+outlen,",");
-        outlen += cb2js(res.start,end-res.start,out+outlen,i*2,dict);
+        if(res.type != CB0R_MAP) continue;
         outlen += sprintf(out+outlen,":");
-        outlen += cb2js(res.start,end-res.start,out+outlen,(i*2)+1,dict);
+        outlen += cb2js(res.start,end-res.start,out+outlen,++i,dict);
       }
-      outlen += sprintf(out+outlen,"}");
+      outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"}":"]");
     } break;
-    case CB0R_TAG: {
+    case CB0R_BASE64URL: {
       cb0r_s res2 = {0,};
       cb0r(res.start,end,0,&res2);
-      if(res.value == 21 && res2.type == CB0R_BYTE)
+      if(res2.type == CB0R_BYTE)
       {
         out[0] = '"';
         outlen = base64_encoder(res2.start,res2.length,out+1);
