@@ -14,6 +14,7 @@ Enable any JSON value to be serialized using CBOR such that it can be compatibly
 * `true`, `false`, and `null` are serialized to their simple values (type 7)
 * Tag 4 is used to serialize all JSON float and exponent numbers
 * Tag 21 is used to serialize any detected base64url encoded JSON strings (commonly used in JOSE)
+* Tag 23 is used to serialize any detected lower-case HEX encoded JSON strings
 * Tag 24 with a byte string item is used to serialize a raw JSON object/array where the exact bytes including whitespace must be kept intact (for crypto)
 * Support for custom dictionaries by using the CBOR byte string (type 2) as the key, the value of which must be resolved to a UTF-8 string that replaces the byte string
 * All JSON numbers that are integers must be converted to a CBOR integer, all other numbers (exponents and fractions) must be preserved using Tag 24
