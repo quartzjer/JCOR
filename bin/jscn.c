@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 {
   if(argc < 3)
   {
-    printf("Usage (args may be swapped): cjs file.json file.cjs\n");
+    printf("Usage (args may be swapped): jscn file.json file.jscn\n");
     return -1;
   }
   char *file_in = argv[1];
@@ -103,11 +103,11 @@ int main(int argc, char **argv)
   }else if(strstr(file_in,".jwt")){
     lout = jwt2cn(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
-  }else if(strstr(file_in,".cjs")){
+  }else if(strstr(file_in,".jscn")){
     lout = jscn2on(bin,lin,(char*)bout,0,dict);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
-    printf("file must be .json or .cjs: %s\n",file_in);
+    printf("file must be .json or .jscn: %s\n",file_in);
     return -1;
   }
 
