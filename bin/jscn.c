@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include "cjs.h"
+#include "jscn.h"
 
 uint8_t *load(char *file, size_t *len)
 {
@@ -98,13 +98,13 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    lout = js2cb(bin,lin,bout,false,dict);
+    lout = json2cn(bin,lin,bout,false,dict);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
-    lout = jwt2cb(bin,lin,bout,dict);
+    lout = jwt2cn(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
-    lout = cb2js(bin,lin,(char*)bout,0,dict);
+    lout = jscn2on(bin,lin,(char*)bout,0,dict);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .cjs: %s\n",file_in);

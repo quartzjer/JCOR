@@ -11,7 +11,7 @@ DEPS=$(patsubst %.c,%.o,$(ALL))
 TESTS=$(patsubst test/%.c,%,$(TESTSC))
 
 
-all: cjs
+all: jscn
 
 %.o : %.c $(HEADERS)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
@@ -19,15 +19,15 @@ all: cjs
 bin/% : test/%.o $(DEPS)
 	$(CC) $(INCLUDE) $(CFLAGS) $(patsubst bin/%,test/%.o,$@) -o $@ $(OBJECTS)
 
-cjs: $(DEPS)
-	$(CC) $(CFLAGS) -o bin/cjs bin/cjs.o $(OBJECTS)
+jscn: $(DEPS)
+	$(CC) $(CFLAGS) -o bin/jscn bin/jscn.o $(OBJECTS)
 
-test: cjs
-	./bin/cjs test/test1.json test/test1.cjs
+test: jscn
+	./bin/jscn test/test1.json test/test1.jscn
 
 clean:
-	rm -f bin/cjs
+	rm -f bin/jscn
 	rm -f $(DEPS)
 
 
-.PHONY: all cjs clean test
+.PHONY: all jscn clean test

@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "cjs.h"
+#include "jscn.h"
 #include "js0n.h"
 #include "base64.h"
 
@@ -56,7 +56,7 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
+size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
 {
   size_t outlen = 0;
 
@@ -68,7 +68,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     if(in[0] == '{')
     {
       outlen = ctype(out,CB0R_MAP,i/2);
-      cb0r_t d2 = dict_match(in,inlen);
+      cb0r_t d2 = jscn_dict_match(in,inlen);
       if(d2) dict = d2;
     }else{
       outlen = ctype(out,CB0R_ARRAY,i);
@@ -77,13 +77,13 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     {
       size_t len = 0;
       const char *str = js0n(NULL,j,(char*)in,inlen,&len);
-      outlen += js2cb((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0), dict);
+      outlen += json2cn((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0), dict);
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
     uint32_t b64 = 0;
     // check dictionary
-    int32_t index = cb_geti(dict,in,inlen);
+    int32_t index = jscn_geti(dict,in,inlen);
     if(index > 0 && index < 256)
     {
       // cbor byte key to represent value
@@ -130,7 +130,7 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
   return outlen;
 }
 
-size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
+size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
 {
   size_t outlen = 0;
   cb0r_s res = {0,};
@@ -146,7 +146,7 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
     case CB0R_BYTE: {
       // dictionary expansion
       cb0r_s str = {0,};
-      if(res.length != 1 || !cb_getv(dict,res.start[0],&str))
+      if(res.length != 1 || !jscn_getv(dict,res.start[0],&str))
       {
         printf("not found in dictionary: %u\n",res.start[0]);
         break;
@@ -163,10 +163,10 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
-        outlen += cb2js(res.start,end-res.start,out+outlen,i,dict);
+        outlen += jscn2on(res.start,end-res.start,out+outlen,i,dict);
         if(res.type != CB0R_MAP) continue;
         outlen += sprintf(out+outlen,":");
-        outlen += cb2js(res.start,end-res.start,out+outlen,++i,dict);
+        outlen += jscn2on(res.start,end-res.start,out+outlen,++i,dict);
       }
       outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"}":"]");
     } break;
@@ -198,7 +198,7 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
   return outlen;
 }
 
-size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
+size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 {
   char *encoded = (char*)in;
   char *end = encoded+(inlen-1);
@@ -215,10 +215,10 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   size_t outlen = ctype(out,CB0R_ARRAY,3);
 
   size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
-  outlen += js2cb(buf, len, out+outlen, false, dict);
+  outlen += json2cn(buf, len, out+outlen, false, dict);
 
   len = base64_decoder(dot1, (dot2-dot1)-1, buf);
-  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false, dict);
+  outlen += json2cn(buf, (dot2-dot1)-1, out+outlen, false, dict);
   
   outlen += ctype(out+outlen,CB0R_TAG,21);
   len = base64_decoder(dot2, (end-dot2)+1, buf);
@@ -231,7 +231,7 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 }
 
 // fetch string value at given index of cbor array
-bool cb_getv(cb0r_t array, uint32_t index, cb0r_t val)
+bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val)
 {
   cb0r_s res = {0,};
   uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
@@ -246,7 +246,7 @@ bool cb_getv(cb0r_t array, uint32_t index, cb0r_t val)
 
 
 // match string value in array and return index (-1 if none)
-int32_t cb_geti(cb0r_t array, uint8_t *str, uint32_t len)
+int32_t jscn_geti(cb0r_t array, uint8_t *str, uint32_t len)
 {
   if(!array || !str) return -1;
   cb0r_s res = {0,};
@@ -266,12 +266,12 @@ int32_t cb_geti(cb0r_t array, uint8_t *str, uint32_t len)
 }
 
 // app defines these to resolve a dictionary by id or by json object
-__weak cb0r_t dict_id(int32_t id)
+__weak cb0r_t jscn_dict_id(int32_t id)
 {
   return NULL;
 }
 
-__weak cb0r_t dict_match(uint8_t *obj, size_t objlen)
+__weak cb0r_t jscn_dict_match(uint8_t *obj, size_t objlen)
 {
   return NULL;
 }
