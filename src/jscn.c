@@ -82,16 +82,8 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
     uint32_t b64 = 0;
-    // check dictionary
-    int32_t index = jscn_geti(dict,in,inlen);
-    if(index > 0 && index < 256)
+    if(!iskey && inlen > 10 && (b64 = base64_decoder((char*)in,inlen,NULL)))
     {
-      // cbor byte key to represent value
-      outlen = ctype(out,CB0R_BYTE,1);
-      out[outlen] = index;
-      outlen++;
-      b64 = 1; // to bypass raw UTF8 fallback
-    }else if(!iskey && inlen > 10 && (b64 = base64_decoder((char*)in,inlen,NULL))){
       // if is base64 write cbor tag and byte string
       outlen = ctype(out,CB0R_TAG,21);
       outlen += ctype(out+outlen,CB0R_BYTE,b64);
@@ -105,12 +97,21 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
         b64 = 0;
       }
     }
+    // write cbor UTF8
     if(b64 == 0)
     {
-      // write cbor UTF8
       outlen = ctype(out,CB0R_UTF8,inlen);
       memcpy(out+outlen,in,inlen);
       outlen += inlen;
+    }
+    // check dictionary
+    int32_t index = jscn_geti(dict,out,outlen);
+    if(index > 0 && index < 256)
+    {
+      // cbor byte key to represent value
+      outlen = ctype(out,CB0R_BYTE,1);
+      out[outlen] = index;
+      outlen++;
     }
   }else if(memcmp(in,"false",inlen) == 0){
     outlen = ctype(out,CB0R_SIMPLE,20);
@@ -135,6 +136,15 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
   size_t outlen = 0;
   cb0r_s res = {0,};
   uint8_t *end = cb0r(in,in+inlen,skip,&res);
+
+  // dictionary replacement swap
+  if(res.type == CB0R_BYTE && res.length == 1 && !jscn_getv(dict,res.start[0],&res))
+  {
+    printf("not found in dictionary: %u\n",res.start[0]);
+    return 0;
+  }
+
+  // expand by type
   switch(res.type)
   {
     case CB0R_INT: {
@@ -143,17 +153,6 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
     case CB0R_NEG: {
       outlen = sprintf(out,"-%llu",res.value+1);
     } break;
-    case CB0R_BYTE: {
-      // dictionary expansion
-      cb0r_s str = {0,};
-      if(res.length != 1 || !jscn_getv(dict,res.start[0],&str))
-      {
-        printf("not found in dictionary: %u\n",res.start[0]);
-        break;
-      }
-      // TODO support b64/hex tag'd values
-      memcpy(&res,&str,sizeof(cb0r_s));
-    } // fall through!
     case CB0R_UTF8: {
       outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start);
     } break;
@@ -230,37 +229,31 @@ size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   return outlen;
 }
 
-// fetch string value at given index of cbor array
+// fetch value at given index of cbor array
 bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val)
 {
   cb0r_s res = {0,};
   uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
   if(res.type != CB0R_ARRAY) return false;
-  if(index >= res.count) return false;
-  end = cb0r(res.start,end,index,&res);
-  // only supported string types/tags
-  if(res.type != CB0R_UTF8 && res.type != CB0R_BASE64URL && res.type != CB0R_HEX) return false;
-  memcpy(val,&res,sizeof(cb0r_s));
+  if(!index || index >= res.count) return false;
+  if(!cb0r(res.start,end,index,val)) return false;
   return true;
 }
 
 
-// match string value in array and return index (-1 if none)
-int32_t jscn_geti(cb0r_t array, uint8_t *str, uint32_t len)
+// match raw cbor value in array and return index (-1 if none)
+int32_t jscn_geti(cb0r_t array, uint8_t *bin, uint32_t len)
 {
-  if(!array || !str) return -1;
+  if(!array || !bin || !len) return -1;
   cb0r_s res = {0,};
   uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
   if(res.type != CB0R_ARRAY) return -1;
-  for(uint32_t i=0;i<res.count;i++)
+  for(uint32_t i=1;i<res.count;i++)
   {
-    cb0r_s ires = {0,};
-    cb0r(res.start,end,i,&ires);
-    // TODO match b64 and hex tag'd values
-    if(ires.type != CB0R_UTF8) continue;
-    if(ires.length != len) continue;
-    if(memcmp(str,ires.start,len) != 0) continue;
-    return i;
+    // get raw starting byte of i by scanning previous entry
+    uint8_t *start = cb0r(res.start,end,i-1,NULL);
+    if(!start || (end - start) < len) break; // paranoid safety
+    if(memcmp(start,bin,len) == 0) return i;
   }
   return -1;
 }
