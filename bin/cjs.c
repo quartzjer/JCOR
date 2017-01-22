@@ -101,7 +101,7 @@ int main(int argc, char **argv)
     lout = js2cb(bin,lin,bout,false,dict);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
-    lout = jwt2cb(bin,lin,bout);
+    lout = jwt2cb(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".cjs")){
     lout = cb2js(bin,lin,(char*)bout,0,dict);

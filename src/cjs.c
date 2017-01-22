@@ -81,11 +81,18 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
-    // check if is base64
     uint32_t b64 = 0;
-    if(!iskey && (b64 = base64_decoder((char*)in,inlen,NULL)))
+    // check dictionary
+    int32_t index = cb_geti(dict,in,inlen);
+    if(index > 0 && index < 256)
     {
-      // write cbor tag and byte string
+      // cbor byte key to represent value
+      outlen = ctype(out,CB0R_BYTE,1);
+      out[outlen] = index;
+      outlen++;
+      b64 = 1; // to bypass raw UTF8 fallback
+    }else if(!iskey && inlen > 10 && (b64 = base64_decoder((char*)in,inlen,NULL))){
+      // if is base64 write cbor tag and byte string
       outlen = ctype(out,CB0R_TAG,21);
       outlen += ctype(out+outlen,CB0R_BYTE,b64);
       base64_decoder((char*)in,inlen,out+outlen);
@@ -100,20 +107,10 @@ size_t js2cb(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     }
     if(b64 == 0)
     {
-      // check dictionary
-      int32_t index = cb_geti(dict,in,inlen);
-      if(index > 0 && index < 256)
-      {
-        // cbor byte key to represent value
-        outlen = ctype(out,CB0R_BYTE,1);
-        out[outlen] = index;
-        outlen++;
-      }else{
-        // write cbor UTF8
-        outlen = ctype(out,CB0R_UTF8,inlen);
-        memcpy(out+outlen,in,inlen);
-        outlen += inlen;
-      }
+      // write cbor UTF8
+      outlen = ctype(out,CB0R_UTF8,inlen);
+      memcpy(out+outlen,in,inlen);
+      outlen += inlen;
     }
   }else if(memcmp(in,"false",inlen) == 0){
     outlen = ctype(out,CB0R_SIMPLE,20);
@@ -154,6 +151,7 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
         printf("not found in dictionary: %u\n",res.start[0]);
         break;
       }
+      // TODO support b64/hex tag'd values
       memcpy(&res,&str,sizeof(cb0r_s));
     } // fall through!
     case CB0R_UTF8: {
@@ -200,7 +198,7 @@ size_t cb2js(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
   return outlen;
 }
 
-size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
+size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 {
   char *encoded = (char*)in;
   char *end = encoded+(inlen-1);
@@ -217,10 +215,10 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
   size_t outlen = ctype(out,CB0R_ARRAY,3);
 
   size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
-  outlen += js2cb(buf, len, out+outlen, false, NULL);
+  outlen += js2cb(buf, len, out+outlen, false, dict);
 
   len = base64_decoder(dot1, (dot2-dot1)-1, buf);
-  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false, NULL);
+  outlen += js2cb(buf, (dot2-dot1)-1, out+outlen, false, dict);
   
   outlen += ctype(out+outlen,CB0R_TAG,21);
   len = base64_decoder(dot2, (end-dot2)+1, buf);
@@ -232,7 +230,7 @@ size_t jwt2cb(uint8_t *in, size_t inlen, uint8_t *out)
   return outlen;
 }
 
-// fetch utf8 string value at given index of cbor array
+// fetch string value at given index of cbor array
 bool cb_getv(cb0r_t array, uint32_t index, cb0r_t val)
 {
   cb0r_s res = {0,};
@@ -240,7 +238,8 @@ bool cb_getv(cb0r_t array, uint32_t index, cb0r_t val)
   if(res.type != CB0R_ARRAY) return false;
   if(index >= res.count) return false;
   end = cb0r(res.start,end,index,&res);
-  if(res.type != CB0R_UTF8) return false;
+  // only supported string types/tags
+  if(res.type != CB0R_UTF8 && res.type != CB0R_BASE64URL && res.type != CB0R_HEX) return false;
   memcpy(val,&res,sizeof(cb0r_s));
   return true;
 }
@@ -257,6 +256,7 @@ int32_t cb_geti(cb0r_t array, uint8_t *str, uint32_t len)
   {
     cb0r_s ires = {0,};
     cb0r(res.start,end,i,&ires);
+    // TODO match b64 and hex tag'd values
     if(ires.type != CB0R_UTF8) continue;
     if(ires.length != len) continue;
     if(memcmp(str,ires.start,len) != 0) continue;
