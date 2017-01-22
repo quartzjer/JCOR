@@ -11,7 +11,8 @@ A subset of CBOR that symmetrically mirrors any JSON value into a compact serial
 * serialization is optional in any security context where the original JSON UTF-8 string is used
   * serializers must always perform a full round-trip and compare to validate if the CBOR representation is safe
 * the api used by a constrained node should be able to return either the JSON UTF-8 or native CBOR type for any value
-* constrained applications should natively use the CBOR representation to efficiently exchange binary values that can still be represented in JSON whenever necessary
+  * the api should also accept JSON and internally generate the CBOR to provide a uniform interface (useful when a security context may contain either format)
+* constrained applications built using JSCN natively to efficiently exchange binary values have the benefit of representing all data in JSON whenever necessary
 
 ## Proposal
 
