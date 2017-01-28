@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// make sure out is 2*len + 1
+// make sure out is 2*len 
 char *base16_encode(uint8_t *in, size_t len, char *out);
 
 // out must be len/2

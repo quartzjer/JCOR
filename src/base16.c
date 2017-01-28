@@ -15,7 +15,6 @@ char *base16_encode(uint8_t *in, size_t len, char *out)
       *c = hex[in[j]&15];
       c++;
     }
-    *c = '\0';
 
     return out;
 }

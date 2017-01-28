@@ -189,6 +189,18 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
         outlen += 2;
       }
     } break;
+    case CB0R_HEX: {
+      cb0r_s res2 = {0,};
+      cb0r(res.start,end,0,&res2);
+      if(res2.type == CB0R_BYTE)
+      {
+        out[0] = '"';
+        outlen = res2.length*2;
+        base16_encode(res2.start,res2.length,out+1);
+        out[outlen+1] = '"';
+        outlen += 2;
+      }
+    } break;
     case CB0R_FALSE: {
       outlen = sprintf(out,"false");
     } break;
