@@ -4,6 +4,7 @@
 #include "jscn.h"
 #include "js0n.h"
 #include "base64.h"
+#include "base16.h"
 
 // copied from https://gist.github.com/yinyin/2027912
 #ifdef __APPLE__
@@ -81,24 +82,32 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
-    uint32_t b64 = 0;
-    if(!iskey && inlen > 10 && (b64 = base64_decoder((char*)in,inlen,NULL)))
+    uint32_t blen = 0;
+    if(!iskey && inlen > 10 && (blen = base64_decoder((char*)in,inlen,NULL)))
     {
       // if is base64 write cbor tag and byte string
       outlen = ctype(out,CB0R_TAG,21);
-      outlen += ctype(out+outlen,CB0R_BYTE,b64);
+      outlen += ctype(out+outlen,CB0R_BYTE,blen);
       base64_decoder((char*)in,inlen,out+outlen);
       // validate exact match using out as buffer
-      base64_encoder(out+outlen,b64,(char*)(out+outlen+b64));
-      if(memcmp(out+outlen+b64,in,inlen) == 0)
+      base64_encoder(out+outlen,blen,(char*)(out+outlen+blen));
+      if(memcmp(out+outlen+blen,in,inlen) == 0)
       {
-        outlen += b64;
+        outlen += blen;
       }else{
-        b64 = 0;
+        blen = 0;
       }
     }
+    if(!iskey && base16_check((char*)in,inlen))
+    {
+      blen = inlen/2;
+      outlen = ctype(out,CB0R_TAG,23);
+      outlen += ctype(out+outlen,CB0R_BYTE,blen);
+      base16_decode((char*)in,inlen,out+outlen);
+      outlen += blen;
+    }
     // write cbor UTF8
-    if(b64 == 0)
+    if(blen == 0)
     {
       outlen = ctype(out,CB0R_UTF8,inlen);
       memcpy(out+outlen,in,inlen);
