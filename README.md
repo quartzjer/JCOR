@@ -87,6 +87,12 @@ braindump:
 * tools can internally support one level of dictionary chaining?
   * replace second number with its values: [-3,22,"four","five",...]
 
+Whitespace hints?
+
+* byte length 1 value 0 as a map key has a map value of another map who's integer keys are whitespace hints
+* hint keys are the position in the original JSON
+* hint values are a UTF-8 string containing only whitespace to be re-inserted
+
 
 
 
