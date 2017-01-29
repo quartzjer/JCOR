@@ -10,20 +10,23 @@ A subset of CBOR that symmetrically mirrors any JSON value into a compact serial
   * the initial JSON->CBOR->JSON may result in different UTF-8 strings
 * serialization is optional in any security context where the original JSON UTF-8 string is used
   * serializers must always perform a full round-trip and compare to validate if the CBOR representation is safe
-* the api used by a constrained node should be able to return either the JSON UTF-8 or native CBOR type for any value
+* the api used by a constrained node to access JSCN should be able to return either the JSON UTF-8 or native CBOR type for any value
   * the api should also accept JSON and internally generate the CBOR to provide a uniform interface (useful when a security context may contain either format)
 * constrained applications built using JSCN natively to efficiently exchange binary values have the benefit of representing all data in JSON whenever necessary
+* only the JSON encoding is canonical, the CBOR encoded byte string may vary based on the serializer implementation capabilities
 
 ## Proposal
 
-* Direct serialization of JSON values to CBOR major types for UTF-8 strings (type 3), integers (types 0 and 1), objects and arrays (types 4 and 5)
+* Direct serialization of JSON structures to CBOR major types objects and arrays (types 4 and 5)
 * `true`, `false`, and `null` are serialized to their simple values (type 7)
-* Tag 4 is used to serialize all JSON float and exponent numbers
-* Tag 21 is used to serialize any detected base64url encoded JSON strings (commonly used in JOSE)
-* Tag 23 is used to serialize any detected lower-case HEX encoded JSON strings
+* JSON numbers/strings must be round-trip tested to guarantee symmetry with the encoding chosen
+* Numbers should be expressed as Integers (type 0 and 1) or Floats (type 7) when round-trip compatible
+  * Remaining numbers are encoded as Bigfloats (tag 5) or exponents (tag 4)
+* Strings should be round-trip tested for possible HEX encoding (tag 23), base64url (tag 21), and base64 (tag 22)
+  * Remaining strings are preserved as a UTF-8 string (type 3)
+* Tag 20 is used to indicate the following value should be upper case in JSON for both HEX (tag 23) and exponents (tag 4's e/E)
 * Ordering of key/value pairs in maps/objects must always be preserved
-* Support for custom dictionaries by using the CBOR byte string (type 2) as the key, the value of which must be resolved to a UTF-8 string that replaces the byte string
-
+* Support for custom dictionaries by using the CBOR byte string (type 2) as the lookup key, the value of which must be resolved to an above CBOR value that replaces the byte string
 
 ```
          ╔══════════╗                         ╔══════════╗
