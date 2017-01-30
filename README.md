@@ -89,11 +89,16 @@ braindump:
 
 Whitespace hints?
 
-* byte length 1 value 0 as a map key has a map value of another map who's integer keys are whitespace hints
+* byte length 1 value 0 as a map key has a map value of another map who's integer keys are whitespace hints for the object
 * hint keys are the position in the original JSON
 * hint values are a UTF-8 string containing only whitespace to be re-inserted
 
+Tag 42 added to identify JSCN in any CBOR, value is an array which contains 1 + 2 optional items:
+  0: byte string of the contained JSCN value
+  1: integer of the dictionary to use (0 for none)
+  2: map of the whitespace hints
 
+(th is ct+array)
 
 
 
