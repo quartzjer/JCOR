@@ -6,6 +6,14 @@
 #include "base64.h"
 #include "base16.h"
 
+// working state
+typedef struct jscn_s {
+  uint8_t *start;
+  uint8_t *out;
+  cb0r_t dict;
+  cb0r_t wsmap;
+} jscn_s, *jscn_t;
+
 // copied from https://gist.github.com/yinyin/2027912
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h>
@@ -57,43 +65,40 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
+static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 {
-  size_t outlen = 0;
-
   if(in[0] == '{' || in[0] == '[')
   {
     // count items, write cbor map/array+count, recurse each k/v
     uint16_t i=0;
-    for(;js0n(NULL,i,(char*)in,inlen,&outlen);i++);
+    size_t len = 0;
+    for(;js0n(NULL,i,(char*)in,inlen,&len);i++);
     if(in[0] == '{')
     {
-      outlen = ctype(out,CB0R_MAP,i/2);
-      cb0r_t d2 = jscn_dict_match(in,inlen);
-      if(d2) dict = d2;
-    }else{
-      outlen = ctype(out,CB0R_ARRAY,i);
+      state->out += ctype(state->out, CB0R_MAP, i / 2);
+    } else {
+      state->out += ctype(state->out, CB0R_ARRAY, i);
     }
     for(uint16_t j=0;j<i;j++)
     {
-      size_t len = 0;
       const char *str = js0n(NULL,j,(char*)in,inlen,&len);
-      outlen += json2cn((uint8_t*)str,len,out+outlen,(in[0] == '{' && (j & 1) == 0), dict);
+      on2cn_part(state, (uint8_t *)str, len, (in[0] == '{' && (j & 1) == 0));
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
     uint32_t blen = 0;
+    uint8_t *start = state->out;
     if(!iskey && inlen > 10 && (blen = base64_decoder((char*)in,inlen,NULL)))
     {
       // if is base64 write cbor tag and byte string
-      outlen = ctype(out,CB0R_TAG,21);
-      outlen += ctype(out+outlen,CB0R_BYTE,blen);
-      base64_decoder((char*)in,inlen,out+outlen);
+      state->out += ctype(state->out, CB0R_TAG, 21);
+      state->out += ctype(state->out, CB0R_BYTE, blen);
+      base64_decoder((char *)in, inlen, state->out);
       // validate exact match using out as buffer
-      base64_encoder(out+outlen,blen,(char*)(out+outlen+blen));
-      if(memcmp(out+outlen+blen,in,inlen) == 0)
+      base64_encoder(state->out, blen, (char *)(state->out + blen));
+      if (memcmp(state->out + blen, in, inlen) == 0)
       {
-        outlen += blen;
+        state->out += blen;
       }else{
         blen = 0;
       }
@@ -101,43 +106,59 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, bool iskey, cb0r_t dict)
     if(!iskey && base16_check((char*)in,inlen))
     {
       blen = inlen/2;
-      outlen = ctype(out,CB0R_TAG,23);
-      outlen += ctype(out+outlen,CB0R_BYTE,blen);
-      base16_decode((char*)in,inlen,out+outlen);
-      outlen += blen;
+      state->out += ctype(state->out, CB0R_TAG, 23);
+      state->out += ctype(state->out, CB0R_BYTE, blen);
+      base16_decode((char *)in, inlen, state->out);
+      state->out += blen;
     }
     // write cbor UTF8
     if(blen == 0)
     {
-      outlen = ctype(out,CB0R_UTF8,inlen);
-      memcpy(out+outlen,in,inlen);
-      outlen += inlen;
+      state->out += ctype(state->out, CB0R_UTF8, inlen);
+      memcpy(state->out, in, inlen);
+      state->out += inlen;
     }
     // check dictionary
-    int32_t index = jscn_geti(dict,out,outlen);
+    cb0r_s item = {0,};
+    cb0r(start,state->out,0,&item);
+    int32_t index = jscn_geti(state->dict, &item);
     if(index > 0 && index < 256)
     {
+      state->out = start;
       // cbor byte key to represent value
-      outlen = ctype(out,CB0R_BYTE,1);
-      out[outlen] = index;
-      outlen++;
+      state->out += ctype(state->out, CB0R_BYTE, 1);
+      state->out[0] = index;
+      state->out++;
     }
   }else if(memcmp(in,"false",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,20);
+    state->out += ctype(state->out, CB0R_SIMPLE, 20);
   }else if(memcmp(in,"true",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,21);
+    state->out += ctype(state->out, CB0R_SIMPLE, 21);
   }else if(memcmp(in,"null",inlen) == 0){
-    outlen = ctype(out,CB0R_SIMPLE,22);
+    state->out += ctype(state->out, CB0R_SIMPLE, 22);
   }else if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen)){
     // TODO write cbor tag 4 for decimal floats/exponents
   }else{
     // parse number, write cbor int
     long long num = strtoll((const char*)in,NULL,10);
-    if(num < 0) outlen = ctype(out,CB0R_NEG,(uint64_t)(~num));
-    else outlen = ctype(out,CB0R_INT,(uint64_t)num);
+    if(num < 0)
+      state->out += ctype(state->out, CB0R_NEG, (uint64_t)(~num));
+    else
+      state->out += ctype(state->out, CB0R_INT, (uint64_t)num);
   }
 
-  return outlen;
+  return true;
+}
+
+size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
+{
+  if(!in || !inlen) return 0;
+  jscn_s state = {0,};
+  state.start = out;
+  state.out = out;
+  state.dict = dict;
+  on2cn_part(&state, in, inlen, false);
+  return state.out - out;
 }
 
 size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
@@ -235,10 +256,10 @@ size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   size_t outlen = ctype(out,CB0R_ARRAY,3);
 
   size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
-  outlen += json2cn(buf, len, out+outlen, false, dict);
+  outlen += json2cn(buf, len, out+outlen, dict);
 
   len = base64_decoder(dot1, (dot2-dot1)-1, buf);
-  outlen += json2cn(buf, (dot2-dot1)-1, out+outlen, false, dict);
+  outlen += json2cn(buf, (dot2-dot1)-1, out+outlen, dict);
   
   outlen += ctype(out+outlen,CB0R_TAG,21);
   len = base64_decoder(dot2, (end-dot2)+1, buf);
@@ -263,18 +284,19 @@ bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val)
 
 
 // match raw cbor value in array and return index (-1 if none)
-int32_t jscn_geti(cb0r_t array, uint8_t *bin, uint32_t len)
+int32_t jscn_geti(cb0r_t array, cb0r_t item)
 {
-  if(!array || !bin || !len) return -1;
+  if(!array || !item) return -1;
+  uint32_t vlen = item->end - item->start;
+  if(!vlen) return -1;
   cb0r_s res = {0,};
-  uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
+  if(!cb0r(array->start,array->start+array->length,0,&res)) return -1;
   if(res.type != CB0R_ARRAY) return -1;
-  for(uint32_t i=1;i<res.count;i++)
+  for(uint32_t i=0;i<res.count;i++)
   {
-    // get raw starting byte of i by scanning previous entry
-    uint8_t *start = cb0r(res.start,end,i-1,NULL);
-    if(!start || (end - start) < len) break; // paranoid safety
-    if(memcmp(start,bin,len) == 0) return i;
+    cb0r_s res2 = {0,};
+    if(!cb0r(res.start, res.end, i, &res2)) break;
+    if(res2.type == item->type && res2.value == item->value && memcmp(res2.start,item->start,vlen) == 0) return i;
   }
   return -1;
 }

@@ -24,6 +24,7 @@ jscn: $(DEPS)
 
 test: jscn
 	./bin/jscn test/test1.json test/test1.jscn
+	./bin/jscn test/test1.json test/test1d.jscn test/dict1.jscn
 
 clean:
 	rm -f bin/jscn

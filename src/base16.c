@@ -46,6 +46,7 @@ uint8_t *base16_decode(char *in, size_t len, uint8_t *out)
 
 char *base16_check(char *str, uint32_t len)
 {
+  if(!str || !len) return NULL;
   if(len & 1) return NULL; // must be even
   uint32_t i;
   for(i=0;i<len;i++)

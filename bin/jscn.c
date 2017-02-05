@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    lout = json2cn(bin,lin,bout,false,dict);
+    lout = json2cn(bin,lin,bout,dict);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
     lout = jwt2cn(bin,lin,bout,dict);
