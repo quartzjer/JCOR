@@ -19,8 +19,7 @@
 #define CAP(i) if(depth == 1) { if(val && !index) {*vlen = (size_t)((cur+i+1) - val); return val;}; if(klen && start) {index = (klen == (size_t)(cur-start) && strncmp(key,start,klen)==0) ? 0 : 2; start = 0;} }
 
 // this makes a single pass across the json bytes, using each byte as an index into a jump table to build an index and transition state
-const char *js0n(const char *key, size_t klen,
-				 const char *json, size_t jlen, size_t *vlen)
+const char *js0n(const char *key, size_t klen, const char *json, size_t jlen, size_t *vlen, char **whitespace)
 {
 	const char *val = 0;
 	const char *cur, *end, *start;
@@ -30,7 +29,7 @@ const char *js0n(const char *key, size_t klen,
 	static void *gostruct[] = 
 	{
 		[0 ... 255] = &&l_bad,
-		['\t'] = &&l_loop, [' '] = &&l_loop, ['\r'] = &&l_loop, ['\n'] = &&l_loop,
+		['\t'] = &&l_ws, [' '] = &&l_ws, ['\r'] = &&l_ws, ['\n'] = &&l_ws,
 		['"'] = &&l_qup,
 		[':'] = &&l_loop,[','] = &&l_loop,
 		['['] = &&l_up, [']'] = &&l_down, // tracking [] and {} individually would allow fuller validation but is really messy
@@ -93,6 +92,14 @@ const char *js0n(const char *key, size_t klen,
 	if(depth) *vlen = jlen; // incomplete
 	return 0;
 	
+	l_ws:
+		if(whitespace && !whitespace[0])
+		{
+			whitespace[0] = cur;
+			whitespace++;
+		}
+		goto l_loop;
+
 	l_bad:
 		*vlen = cur - json; // where error'd
 		return 0;
