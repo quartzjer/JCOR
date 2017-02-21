@@ -11,7 +11,6 @@ typedef struct jscn_s {
   uint8_t *start;
   uint8_t *out;
   cb0r_t dict;
-  cb0r_t wsmap;
 } jscn_s, *jscn_t;
 
 // copied from https://gist.github.com/yinyin/2027912
@@ -72,7 +71,7 @@ static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     // count items, write cbor map/array+count, recurse each k/v
     uint16_t i=0;
     size_t len = 0;
-    for(;js0n(NULL,i,(char*)in,inlen,&len);i++);
+    for(;js0n(NULL,i,(char*)in,inlen,&len,NULL);i++);
     if(in[0] == '{')
     {
       state->out += ctype(state->out, CB0R_MAP, i / 2);
@@ -81,7 +80,7 @@ static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     }
     for(uint16_t j=0;j<i;j++)
     {
-      const char *str = js0n(NULL,j,(char*)in,inlen,&len);
+      const char *str = js0n(NULL,j,(char*)in,inlen,&len,NULL);
       on2cn_part(state, (uint8_t *)str, len, (in[0] == '{' && (j & 1) == 0));
     }
 
@@ -153,11 +152,23 @@ static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 {
   if(!in || !inlen) return 0;
+
+  // validate any json first while getting whitespace
+  uint8_t **whitespace = malloc((inlen + 1) * sizeof(char *)); // array of char*'s
+  memset(whitespace, 0, (inlen + 1) * sizeof(char *));
+  size_t err = 0;
+  js0n("\0", 1, (char *)in, inlen, &err, (char**)whitespace); // full scan by looking for invalid key
+  for(uint8_t **ws = whitespace;*ws;ws++) printf("%lu:%u ",*ws - in, **ws);
+  printf("\n");
+  free(whitespace);
+  if(err) return 0;
+
   jscn_s state = {0,};
   state.start = out;
   state.out = out;
   state.dict = dict;
   on2cn_part(&state, in, inlen, false);
+
   return state.out - out;
 }
 
