@@ -6,9 +6,9 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 
 * Round-trip from JSON->CBOR->JSON must always result in indentical UTF-8 strings
 * Optimizes for compact representations wherever possible without breaking symmetry
-* The CBOR notation must be easily usable by constrained applications as a native data encoding for binary values such that all data can always be safely expanded to JSON if necessary
+* The CBOR notation must be directly usable by constrained applications and easily adopted for all data encoding needs
 * Only the JSON encoding is canonical, the CBOR encoder implementations must produce identical semantic structures but the actual byte string may have slight variations
-* JSCN encoders must operate directly on the UTF-8 JSON string when round-trip symmetry is required, if operating with a parsed JSON value the round-trip can only guarantee semantic compatibility within that parsed context
+* JSCN transcoder software must operate directly on the UTF-8 JSON string when round-trip symmetry is required, if operating with a parsed JSON value the round-trip can only guarantee semantic compatibility within its parsed context
 
 ## Proposal
 
