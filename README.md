@@ -18,7 +18,7 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 * JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5)
 * All JSON strings must be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical UTF-8 strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 20/23), any remaining strings are preserved as a UTF-8 string (type 3)
 * Any UTF-8 or decoded byte strings that begin with a JSON structure byte of '{' or '[' should also be round-trip tested as a possible JSON object/array that can be encoded as an embedded JSCN value (common in JOSE)
-* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map containing minimally a "jscn" key with the JSCN value, optional additional items in the map are metadata about it such as "dictionary" and "whitespace", the map uses the built-in dictionary of `[0,"jscn","dictionary","whitespace","version"]`
+* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map with integer keys containing minimally a `1` key with the JSCN value, optional additional items in the map are metadata about it such as the dictionary (`2`) and whitespace hints (`3`)
 * Introduce CBOR tag 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values
 
 ### Dictionaries
