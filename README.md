@@ -18,9 +18,8 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 * JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5)
 * All JSON strings must be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical UTF-8 strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 20/23), any remaining strings are preserved as a UTF-8 string (type 3)
 * Any UTF-8 or decoded byte strings that begin with a JSON structure byte of '{' or '[' should also be round-trip tested as a possible JSON object/array that can be encoded as an embedded JSCN value (common in JOSE)
-* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by an array with the first item being the JSCN byte string and optional additional items in the array containing metadata about it (dictionary is first entry, whitespace hints are second)
+* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map containing minimally a "jscn" key with the JSCN value, optional additional items in the map are metadata about it such as "dictionary" and "whitespace", the map uses the built-in dictionary of `[0,"jscn","dictionary","whitespace","version"]`
 * Introduce CBOR tag 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values
-* Any JSON string that was safely decoded from hex/base64url/base64 must be then round-trip tested as a self-contained JSON value and the JSCN (tag 42) used instead of the decoded byte string
 
 ### Dictionaries
 
@@ -33,7 +32,7 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 
 ### Whitespace Hints
 
-* The third item in a JSCN tag 42 array is an optional CBOR map of the non-semantic whitespace present in the original JSON UTF-8 string
+* The "whitespace" key in a JSCN tag 42 map is an optional CBOR map value of the non-semantic whitespace present in the original JSON UTF-8 string
 * The map keys are a CBOR unsigned integer type 0 that is the byte position in the original string of one or more whitespace characters
 * The map values are a CBOR UTF-8 string of one or more whitespace characters to be inserted at that position
 * When re-inflating the whitespace they must be applied in incremental positional order
