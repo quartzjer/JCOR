@@ -163,13 +163,41 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   free(whitespace);
   if(err) return 0;
 
+  // first make the JSCN header map
+  uint8_t *at = out;
+  at += ctype(at, CB0R_TAG, 42);
+  uint8_t items = 1;
+  if(dict) items++;
+  if(whitespace) items++;
+  at += ctype(at, CB0R_MAP, items * 2);
+
+  if(dict)
+  {
+    at += ctype(at, CB0R_INT, 2);
+    cb0r_s res = {0,};
+    jscn_getv(dict, 0, &res);
+    memcpy(at,res.start,res.end-res.start);
+    at += res.end-res.start;
+  }
+
+  // generate into value
+  at += ctype(at, CB0R_INT, 1);
   jscn_s state = {0,};
-  state.start = out;
-  state.out = out;
+  state.start = at;
+  state.out = at;
   state.dict = dict;
   on2cn_part(&state, in, inlen, false);
+  at = state.out;
 
-  return state.out - out;
+  // add any whitespace
+  if(whitespace)
+  {
+    at += ctype(at, CB0R_INT, 3);
+    at += ctype(at, CB0R_MAP, 0);
+    // TODO
+  }
+
+  return at - out;
 }
 
 size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
