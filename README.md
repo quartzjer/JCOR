@@ -17,7 +17,8 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 * Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the contained `e` symbol is upper-case in JSON the case tag (20) must also be used
 * JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5)
 * All JSON strings must be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical UTF-8 strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 20/23), any remaining strings are preserved as a UTF-8 string (type 3)
-* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by an array with the first item being the JSCN byte string and optional additional items in the array containing metadata about it
+* Any UTF-8 or decoded byte strings that begin with a JSON structure byte of '{' or '[' should also be round-trip tested as a possible JSON object/array that can be encoded as an embedded JSCN value (common in JOSE)
+* Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by an array with the first item being the JSCN byte string and optional additional items in the array containing metadata about it (dictionary is first entry, whitespace hints are second)
 * Introduce CBOR tag 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values
 * Any JSON string that was safely decoded from hex/base64url/base64 must be then round-trip tested as a self-contained JSON value and the JSCN (tag 42) used instead of the decoded byte string
 
@@ -28,9 +29,7 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 * The replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the dictionary from 1-255, value 0 and byte lengths >1 are currently reserved
 * Dictionaries are themselves identified with a unique integer id, public well-known dictionaries should use positive integers and private / application-specific dictionaries should use negative integers, id 0 is reserverd
 * A dictionary is represented in JSCN as the condensed form of an array where the first value is the dictionary id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
-* A single level of dictionary inheritance is represented by the second value in the array being the integer id of another dictionary, who's contained keys are then inserted in place of the id retaining their positional values in the resulting combined larger dictionary
-* The second value in the JSCN tag array is the optional dictionary id to be applied for it
-* When the JSON is known to contain string values that are also encoded JSON values (such as base64url encoded headers, claims, etc in JOSE) an additional map may be provided to a dictionary that contains the keys for which the values are the id of the dictionary to be applied when those keys match the key in a JSON object and its value is being test-condensed to JSCN, the given dictionary is then saved in any resulting JSCN tag 42 array
+* Dictionaries may be combined when the JSCN contains another dictionary id, any byte strings in the definition array are then replaced with the key from the given directory
 
 ### Whitespace Hints
 
