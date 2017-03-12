@@ -8,6 +8,8 @@
 
 // whitespace table
 static char *ws_table[24] = { "0a", "0a2020", "0a20202020", "0a202020202020", "0a2020202020202020", "0a20202020202020202020", "0a202020202020202020202020", "0a2020202020202020202020202020", "09", "0a09", "0a0909", "0a090909", "0a09090909", "0a0909090909", "0a090909090909", "0a09090909090909", "0a0909090909090909", "0d", "0d0a", "0d0a2020", "0d0a20202020", "0d0a09", "0d0a0909", "0d0a090909"};
+static uint8_t ws_tablen[24] = { 2, 6, 10, 14, 18, 22, 26, 30, 2, 4, 6, 8, 10, 12, 14, 16, 18, 2, 4, 8, 12, 6, 8, 10};
+#define WS_MAXLEN 32
 
 // working state
 typedef struct jscn_s {
@@ -177,28 +179,48 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
     char **start = i, **end = i;
     for(i++; *i && (*i - *end) == 1; i++, end++);
     do {
-      uint32_t wlen = (*end - *start) + 1;
-      uint32_t cur = *start - (char *)in;
-      printf("WHITESPACE\t%.*s\n", wlen * 2, base16_encode((uint8_t *)*start, wlen, (char *)state->out));
+      uint8_t *ws = (uint8_t*)*start;
+      uint32_t wslen = (*end - *start) + 1;
+      uint32_t offset = (ws - in) - prev;
+      prev = ws - in;
+//      printf("WS off %u %.*s\n", offset, wslen * 2, base16_encode(ws, wslen, (char *)state->out));
 
-      // single whitespace special case first
-      if(wlen == 1 && (*start)[0] == ' ')
+      // single space special case first
+      if(wslen == 1 && ws[0] == ' ')
       {
-        state->out += ctype(state->out, CB0R_NEG, cur - prev);
-        prev = cur;
+        state->out += ctype(state->out, CB0R_NEG, offset);
         break;
       }
 
-      // offset first
-      state->out += ctype(state->out, CB0R_INT, cur - prev);
-      prev = cur;
+      // then add offset
+      state->out += ctype(state->out, CB0R_INT, offset);
 
-      // detect whitespace
-      state->out += ctype(state->out, CB0R_UTF8, wlen);
-      memcpy(state->out, *start, wlen);
-      state->out += wlen;
-      start += wlen;
-    } while(start <= end);
+      // count any repeating/leading spaces
+      uint32_t spaces = 0;
+      for(uint32_t j=0;j<wslen;j++) if(ws[j] == ' ') spaces++; else break;
+      if(spaces) {
+        state->out += ctype(state->out, CB0R_NEG, spaces);
+        *start += spaces;
+        continue;
+      }
+
+      // look for the longest prefix from the table
+      char wsmatch[WS_MAXLEN] = {0,};
+      base16_encode(ws, (wslen > WS_MAXLEN) ? WS_MAXLEN : wslen, wsmatch);
+      int8_t best = -1;
+      for(uint8_t j=0;j<=23;j++) {
+        // the current ws must match 
+        if(ws_tablen[j] > (wslen*2)) continue;
+        if(memcmp(wsmatch, ws_table[j], ws_tablen[j]) != 0) continue;
+        best = j;
+      }
+      if(best == -1) printf("FATAL ERROR: %s\n",wsmatch);
+
+      // save table id and advance
+      state->out += ctype(state->out, CB0R_INT, best);
+      *start += ws_tablen[best];
+
+    } while(*start < *end);
   }
 
   free(whitespace);
