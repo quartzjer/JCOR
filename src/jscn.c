@@ -67,7 +67,7 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
-static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
+static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 {
   if(in[0] == '{' || in[0] == '[')
   {
@@ -148,8 +148,60 @@ static bool on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     else
       state->out += ctype(state->out, CB0R_INT, (uint64_t)num);
   }
+}
 
-  return true;
+static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
+{
+  // get all whitespace pointers
+  char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
+  memset(whitespace, 0, (inlen + 1) * sizeof(char *)); // js0n fills only nulls
+  whitespace[inlen] = "end";
+  size_t err = 0;
+  js0n("\0", 1, (char *)in, inlen, &err, whitespace);
+  whitespace[inlen] = NULL; // ensure terminated
+
+  // loop to count first, skip consecutive
+  uint32_t items = 0;
+  for(char **i = whitespace; *i; items++)
+    for(char **j = i++; *i && (*i - *j) == 1; i++, j++);
+  state->out += ctype(state->out, CB0R_INT, 3);
+  // indefinite length array
+  state->out[0] = CB0R_ARRAY << 5;
+  state->out[0] |= 31;
+  state->out++;
+
+  // fill in array w/ integers
+  uint32_t prev = 0;
+  for(char **i = whitespace; *i;) {
+    // start/end are _inclusive_
+    char **start = i, **end = i;
+    for(i++; *i && (*i - *end) == 1; i++, end++);
+    do {
+      uint32_t wlen = (*end - *start) + 1;
+      uint32_t cur = *start - (char *)in;
+      printf("WHITESPACE\t%.*s\n", wlen * 2, base16_encode((uint8_t *)*start, wlen, (char *)state->out));
+
+      // single whitespace special case first
+      if(wlen == 1 && (*start)[0] == ' ')
+      {
+        state->out += ctype(state->out, CB0R_NEG, cur - prev);
+        prev = cur;
+        break;
+      }
+
+      // offset first
+      state->out += ctype(state->out, CB0R_INT, cur - prev);
+      prev = cur;
+
+      // detect whitespace
+      state->out += ctype(state->out, CB0R_UTF8, wlen);
+      memcpy(state->out, *start, wlen);
+      state->out += wlen;
+      start += wlen;
+    } while(start <= end);
+  }
+
+  free(whitespace);
 }
 
 size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
@@ -165,7 +217,7 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   // first make the JSCN header map
   uint8_t *at = out;
   at += ctype(at, CB0R_TAG, 42);
-  uint32_t items = 1;
+  uint8_t items = 1;
   if(dict) items++;
   if(ws[0]) items++;
   at += ctype(at, CB0R_MAP, items * 2);
@@ -186,45 +238,11 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   state.out = at;
   state.dict = dict;
   on2cn_part(&state, in, inlen, false);
-  at = state.out;
 
   // add any whitespace
-  if(ws[0])
-  {
-    // get all whitespace pointers
-    char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
-    memset(whitespace, 0, (inlen + 1) * sizeof(char *)); // js0n fills only nulls
-    whitespace[inlen] = "end";
-    js0n("\0", 1, (char *)in, inlen, &err, whitespace);
-    whitespace[inlen] = NULL; // ensure terminated
+  if(ws[0]) ws2cn(&state, in, inlen);
 
-    // loop to count first, skip consecutive
-    items = 0;
-    for(char **i = whitespace; *i; items++)
-      for(char **j = i++; *i && (*i - *j) == 1; i++, j++);
-    at += ctype(at, CB0R_INT, 3);
-    at += ctype(at, CB0R_MAP, items*2);
-
-    // fill in map, offset int key to char value
-    uint32_t prev = 0;
-    for(char **i = whitespace; *i;) {
-      // start/end are _inclusive_
-      char **start = i, **end = i;
-      for(i++; *i && (*i - *end) == 1; i++, end++);
-      uint32_t wlen = (*end - *start) + 1;
-      uint32_t cur = *start - (char *)in;
-      at += ctype(at, CB0R_INT, cur - prev);
-      prev = cur;
-      at += ctype(at, CB0R_UTF8, wlen);
-      printf("WHITESPACE\t%.*s\n",wlen*2,base16_encode((uint8_t*)*start,wlen,(char*)at));
-      memcpy(at, *start, wlen);
-      at += wlen;
-    }
-
-    free(whitespace);
-  }
-
-  return at - out;
+  return state.out - out;
 }
 
 size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
