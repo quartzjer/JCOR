@@ -6,6 +6,9 @@
 #include "base64.h"
 #include "base16.h"
 
+// whitespace table
+static char *ws_table[24] = { "0a", "0a2020", "0a20202020", "0a202020202020", "0a2020202020202020", "0a20202020202020202020", "0a202020202020202020202020", "0a2020202020202020202020202020", "09", "0a09", "0a0909", "0a090909", "0a09090909", "0a0909090909", "0a090909090909", "0a09090909090909", "0a0909090909090909", "0d", "0d0a", "0d0a2020", "0d0a20202020", "0d0a09", "0d0a0909", "0d0a090909"};
+
 // working state
 typedef struct jscn_s {
   uint8_t *start;
@@ -153,22 +156,18 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 {
   if(!in || !inlen) return 0;
 
-  // validate any json first while getting whitespace
-  uint8_t **whitespace = malloc((inlen + 1) * sizeof(char *)); // array of char*'s
-  memset(whitespace, 0, (inlen + 1) * sizeof(char *));
+  // validate any json first w/ full scan by looking for invalid key
   size_t err = 0;
-  js0n("\0", 1, (char *)in, inlen, &err, (char**)whitespace); // full scan by looking for invalid key
-  for(uint8_t **ws = whitespace;*ws;ws++) printf("%lu:%u ",*ws - in, **ws);
-  printf("\n");
-  free(whitespace);
+  char *ws[2] = {NULL,"end"}; // notice if there's any whitespace also
+  js0n("\0", 1, (char *)in, inlen, &err, ws);
   if(err) return 0;
 
   // first make the JSCN header map
   uint8_t *at = out;
   at += ctype(at, CB0R_TAG, 42);
-  uint8_t items = 1;
+  uint32_t items = 1;
   if(dict) items++;
-  if(whitespace) items++;
+  if(ws[0]) items++;
   at += ctype(at, CB0R_MAP, items * 2);
 
   if(dict)
@@ -190,11 +189,39 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   at = state.out;
 
   // add any whitespace
-  if(whitespace)
+  if(ws[0])
   {
+    // get all whitespace pointers
+    char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
+    memset(whitespace, 0, (inlen + 1) * sizeof(char *)); // js0n fills only nulls
+    whitespace[inlen] = "end";
+    js0n("\0", 1, (char *)in, inlen, &err, whitespace);
+    whitespace[inlen] = NULL; // ensure terminated
+
+    // loop to count first, skip consecutive
+    items = 0;
+    for(char **i = whitespace; *i; items++)
+      for(char **j = i++; *i && (*i - *j) == 1; i++, j++);
     at += ctype(at, CB0R_INT, 3);
-    at += ctype(at, CB0R_MAP, 0);
-    // TODO
+    at += ctype(at, CB0R_MAP, items*2);
+
+    // fill in map, offset int key to char value
+    uint32_t prev = 0;
+    for(char **i = whitespace; *i;) {
+      // start/end are _inclusive_
+      char **start = i, **end = i;
+      for(i++; *i && (*i - *end) == 1; i++, end++);
+      uint32_t wlen = (*end - *start) + 1;
+      uint32_t cur = *start - (char *)in;
+      at += ctype(at, CB0R_INT, cur - prev);
+      prev = cur;
+      at += ctype(at, CB0R_UTF8, wlen);
+      printf("WHITESPACE\t%.*s\n",wlen*2,base16_encode((uint8_t*)*start,wlen,(char*)at));
+      memcpy(at, *start, wlen);
+      at += wlen;
+    }
+
+    free(whitespace);
   }
 
   return at - out;
@@ -340,14 +367,4 @@ int32_t jscn_geti(cb0r_t array, cb0r_t item)
   return -1;
 }
 
-// app defines these to resolve a dictionary by id or by json object
-__weak cb0r_t jscn_dict_id(int32_t id)
-{
-  return NULL;
-}
-
-__weak cb0r_t jscn_dict_match(uint8_t *obj, size_t objlen)
-{
-  return NULL;
-}
 

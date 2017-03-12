@@ -32,10 +32,12 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 
 ### Whitespace Hints
 
-* The "whitespace" key in a JSCN tag 42 map is an optional CBOR map value of the non-semantic whitespace present in the original JSON UTF-8 string
-* The map keys are a CBOR unsigned integer type 0 that is the byte position in the original string of one or more whitespace characters
-* The map values are a CBOR UTF-8 string of one or more whitespace characters to be inserted at that position
-* When re-inflating the whitespace they must be applied in incremental positional order
+* The "whitespace" key in a JSCN tag 42 map is an optional CBOR array value of the non-semantic whitespace present in the original JSON UTF-8 string
+* The array contains only integers that reference offsets of the locations of whitespace in the original JSON string and lookup references to what whitespace contents were there
+* Each offset integer is relative to the position of the previous offset such that all integers are of small values
+* Any negative integer offset is a reference to a single space character (0x20) at the offset of the positive value of that integer
+* All positive integer offsets are followed by another integer, positive values (0-23) reference a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat
+* When re-inflating the whitespace the array must be applied sequentially so that each new offset matches the original JSON string position
 
 
 

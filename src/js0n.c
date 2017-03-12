@@ -95,7 +95,7 @@ const char *js0n(const char *key, size_t klen, const char *json, size_t jlen, si
 	l_ws:
 		if(whitespace && !whitespace[0])
 		{
-			whitespace[0] = cur;
+			whitespace[0] = (char*)cur;
 			whitespace++;
 		}
 		goto l_loop;
