@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     lout = jwt2cn(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jscn")){
-    lout = jscn2on(bin,lin,(char*)bout,0,dict);
+    lout = jscn2on(bin,lin,(char*)bout,dict);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .jscn: %s\n",file_in);

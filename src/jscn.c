@@ -69,6 +69,33 @@ size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
   return 2;
 }
 
+bool cbeq(cb0r_t a, cb0r_t b)
+{
+  if(!a || !b) return false;
+  if(a->type != b->type) return false;
+  if(a->value != b->value) return false;
+  switch(a->type)
+  {
+    case CB0R_INT:
+    case CB0R_NEG:
+    case CB0R_TAG:
+    case CB0R_SIMPLE:
+      return true;
+    case CB0R_UTF8:
+    case CB0R_BYTE:
+    case CB0R_MAP:
+    case CB0R_ARRAY:
+      if(!a->start || !b->start) return false;
+      if(!a->end || !b->end) return false;
+      if((a->end - a->start) != (b->end - b->start)) return false;
+      if(memcmp(a->start,b->start,(a->end - a->start)) != 0) return false;
+      return true;
+    default:
+      return false;
+  }
+  return false;
+}
+
 static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 {
   if(in[0] == '{' || in[0] == '[')
@@ -267,7 +294,7 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   return state.out - out;
 }
 
-size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
+static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
 {
   size_t outlen = 0;
   cb0r_s res = {0,};
@@ -298,10 +325,10 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
-        outlen += jscn2on(res.start,end-res.start,out+outlen,i,dict);
+        outlen += cn2on_part(res.start,end-res.start,out+outlen,i,dict);
         if(res.type != CB0R_MAP) continue;
         outlen += sprintf(out+outlen,":");
-        outlen += jscn2on(res.start,end-res.start,out+outlen,++i,dict);
+        outlen += cn2on_part(res.start,end-res.start,out+outlen,++i,dict);
       }
       outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"}":"]");
     } break;
@@ -342,6 +369,43 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
     } break;
 
   }
+  return outlen;
+}
+
+cb0r_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t out, uint8_t index)
+{
+  cb0r_s res = {0,};
+
+  uint8_t *end = cb0r(in,in+inlen,0,&res);
+  if(res.type != CB0R_TAG || res.value != 42)
+  {
+    printf("CBOR is not tagged as JSCN\n");
+    return NULL;
+  }
+
+  end = cb0r(in,in+inlen,1,&res);
+  if(res.type != CB0R_MAP || !res.count)
+  {
+    printf("JSCN does not begin with a map\n");
+    return NULL;
+  }
+
+  cb0r_s resv = {0,};
+  if(!jscn_getkv(&res,&(cb0r_s){.type=CB0R_INT,.value=index},&resv))
+  {
+    printf("map does not contain key %u\n",index);
+    return NULL;
+  }
+
+  return out;
+}
+
+size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
+{
+  size_t outlen = 0;
+  cb0r_s res = {0,};
+  jscn2cbor(in, inlen, &res, 1);
+  outlen = cn2on_part(res.start, (res.end - res.start), out, 0, dict);
   return outlen;
 }
 
@@ -402,9 +466,12 @@ int32_t jscn_geti(cb0r_t array, cb0r_t item)
   {
     cb0r_s res2 = {0,};
     if(!cb0r(res.start, res.end, i, &res2)) break;
-    if(res2.type == item->type && res2.value == item->value && memcmp(res2.start,item->start,vlen) == 0) return i;
+    if(cbeq(item,&res2)) return i;
   }
   return -1;
 }
 
-
+bool jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value)
+{
+  return false;
+}
