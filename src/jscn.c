@@ -380,51 +380,48 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
 }
 
 // validates jscn and returns the given index value from the wrapper
-cb0r_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t out, jscnkey_e key)
+uint32_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t res, jscnkey_e key, cb0r_t value)
 {
-  cb0r_s res = {0,};
-
-  uint8_t *end = cb0r(in,in+inlen,0,&res);
-  if(res.type != CB0R_TAG || res.value != 42)
-  {
-    printf("CBOR is not tagged as JSCN\n");
-    return NULL;
+  uint8_t *end = cb0r(in,in+inlen,0,res);
+  if(res->type != CB0R_TAG || res->value != 42) {
+    printf("CBOR is not tagged as JSCN: %u/%llu\n", res->type, res->value);
+    return 0;
   }
 
-  end = cb0r(in,in+inlen,1,&res);
-  if(res.type != CB0R_MAP || !res.count)
-  {
-    printf("JSCN does not begin with a map\n");
-    return NULL;
+  end = cb0r(res->start, in + inlen, 0, res);
+  if(!end || res->type != CB0R_MAP || !res->count) {
+    printf("JSCN does not begin with a map: %u\n", res->type);
+    return 0;
   }
 
-  cb0r_s resv = {0,};
-  if(!jscn_getkv(&res,&(cb0r_s){.type=CB0R_INT,.value=key},&resv))
-  {
+  uint32_t index = jscn_getkv(res, &(cb0r_s){.type = CB0R_INT, .value = key }, value);
+  if(!index) {
     printf("map does not contain key %u\n",(uint8_t)key);
-    return NULL;
+    return 0;
   }
 
-  return out;
+  return index;
 }
 
 size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
 {
   size_t outlen = 0;
-  cb0r_s res = {0,};
+  cb0r_s res = {0,}, resv = {0,};
 
   // check for dictionary
-  if(jscn2cbor(in, inlen, &res, JSCN_KEY_DICT)) {
+  if(jscn2cbor(in, inlen, &res, JSCN_KEY_DICT, &resv)) {
+    printf("using dictionary %llu\n",resv.value);
     // TODO 
   }
 
-  // extract the data
-  if(!jscn2cbor(in, inlen, &res, JSCN_KEY_DATA)) return 0;
-  outlen = cn2on_part(res.start, (res.end - res.start), out, 0, dict);
+  // extract the data and convert it
+  uint32_t index = jscn2cbor(in, inlen, &res, JSCN_KEY_DATA, &resv);
+  if(!index) return 0;
+  outlen = cn2on_part(res.start, res.end - res.start, out, index, dict);
 
   // check for whitespace hints
-  if(jscn2cbor(in, inlen, &res, JSCN_KEY_WS)) {
-    printf("have whitespace %s\n", base16_encode(res.start, res.length, out + outlen + 1));
+  if(jscn2cbor(in, inlen, &res, JSCN_KEY_WS, &resv) && resv.type == CB0R_ARRAY) {
+    printf("have whitespace hints\n");
   }
 
   return outlen;
@@ -492,7 +489,15 @@ int32_t jscn_geti(cb0r_t array, cb0r_t item)
   return -1;
 }
 
-bool jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value)
+// returns index of value
+uint32_t jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value)
 {
-  return false;
+  if(!map || !key || !value) return 0;
+  cb0r_s res = {0,};
+  for(uint32_t i = 0; cb0r(map->start, map->end, i, &res); i += 2) {
+    if(res.type != key->type || res.value != key->value) continue;
+    cb0r(map->start, map->end, i+1, value);
+    return i+1;
+  }
+  return 0;
 }

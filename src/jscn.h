@@ -13,5 +13,5 @@ bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val);
 // match cbor item in array and return index (-1 if none)
 int32_t jscn_geti(cb0r_t array, cb0r_t item);
 
-// fill in value for matching key in given map
-bool jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value);
+// fill in value for matching key in given map, returns value's index
+uint32_t jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value);
