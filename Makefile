@@ -24,7 +24,10 @@ jscn: $(DEPS)
 
 test: jscn
 	./bin/jscn test/test1.json test/test1.jscn
+	hexdump test/test1.jscn  | cut -c 8-
 	./bin/jscn test/test1.json test/test1d.jscn test/dict1.jscn
+	hexdump test/test1d.jscn  | cut -c 8-
+	./bin/jscn test/test1d.jscn test/test1d.json test/dict1.jscn
 
 clean:
 	rm -f bin/jscn
