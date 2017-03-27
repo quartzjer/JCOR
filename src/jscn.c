@@ -217,6 +217,7 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
       if(wslen == 1 && ws[0] == ' ')
       {
         state->out += ctype(state->out, CB0R_NEG, offset);
+        prev++;
         break;
       }
 
@@ -229,6 +230,7 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
       if(spaces) {
         state->out += ctype(state->out, CB0R_NEG, spaces);
         *start += spaces;
+        prev += spaces;
         continue;
       }
 
@@ -246,7 +248,8 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
 
       // save table id and advance
       state->out += ctype(state->out, CB0R_INT, best);
-      *start += ws_tablen[best];
+      *start += ws_tablen[best]/2;
+      prev += ws_tablen[best]/2;
 
     } while(*start < *end);
   }
@@ -422,6 +425,47 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
   // check for whitespace hints
   if(jscn2cbor(in, inlen, &res, JSCN_KEY_WS, &resv) && resv.type == CB0R_ARRAY) {
     printf("have whitespace hints\n");
+    cb0r_s item = {0,};
+    uint32_t i = 0;
+    char *at = out;
+    while(item.type < CB0R_ERR) {
+      cb0r(resv.start, resv.start + resv.length, i++, &item);
+
+      // insert single space first
+      if(item.type == CB0R_NEG) {
+        at += item.value;
+        memmove(at+1,at,outlen-(at-out));
+        at[0] = ' ';
+        at++;
+        outlen++;
+        continue;
+      }
+
+      // insert variable lengths
+      if(item.type == CB0R_INT) {
+        at += item.value;
+        cb0r(resv.start, resv.start + resv.length, i++, &item);
+        // repeating whitespaces
+        if(item.type == CB0R_NEG) {
+          memmove(at + item.value, at, outlen - (at - out));
+          memset(at,' ',item.value);
+          at += item.value;
+          outlen += item.value;
+          continue;
+        }
+        if(item.type == CB0R_INT && item.value < 24) {
+          uint8_t len = ws_tablen[item.value]/2;
+          memmove(at + len, at, outlen - (at - out));
+          base16_decode(ws_table[item.value],ws_tablen[item.value],(uint8_t*)at);
+          at += len;
+          outlen += len;
+          continue;
+        }
+      }
+
+      break;
+    }
+
   }
 
   return outlen;
