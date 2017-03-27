@@ -11,12 +11,6 @@ static char *ws_table[24] = { "0a", "0a2020", "0a20202020", "0a202020202020", "0
 static uint8_t ws_tablen[24] = { 2, 6, 10, 14, 18, 22, 26, 30, 2, 4, 6, 8, 10, 12, 14, 16, 18, 2, 4, 8, 12, 6, 8, 10};
 #define WS_MAXLEN 32
 
-typedef enum {
-  JSCN_KEY_DATA = 1,
-  JSCN_KEY_DICT,
-  JSCN_KEY_WS
-} jscnkey_e;
-
 // working state
 typedef struct jscn_s {
   uint8_t *start;
@@ -285,6 +279,7 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
     cb0r_s res = {0,};
     if(!jscn_getv(dict, 0, &res)) return 0;
     at += ctype(at, CB0R_INT, res.value);
+    printf("using dictionary %llu\n",res.value);
   }
 
   // generate into value
@@ -484,23 +479,15 @@ size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   if(!dot2 || (dot2+1) >= end) return 0;
   dot2++;
 
-  uint8_t *buf = malloc(inlen); // scratch space
-  size_t outlen = ctype(out,CB0R_ARRAY,3);
+  // convert to temporary json buffer
+  uint8_t *buf = malloc(inlen*2); 
+  uint32_t len = snprintf((char *)buf, inlen * 2, "{\"protected\":\"%.*s\",\"payload\":\"%.*s\",\"signature\":\"%.*s\",}", (int)((dot1 - encoded) - 1), encoded, (int)((dot2 - dot1) - 1), dot1, (int)((end - dot2) + 1), dot2);
 
-  size_t len = base64_decoder(encoded, (dot1-encoded)-1, buf);
-  outlen += json2cn(buf, len, out+outlen, dict);
-
-  len = base64_decoder(dot1, (dot2-dot1)-1, buf);
-  outlen += json2cn(buf, (dot2-dot1)-1, out+outlen, dict);
-  
-  outlen += ctype(out+outlen,CB0R_TAG,21);
-  len = base64_decoder(dot2, (end-dot2)+1, buf);
-  outlen += ctype(out+outlen,CB0R_BYTE,len);
-  memcpy(out+outlen,buf,len);
-  outlen += len;
-
+  // normal json->jscn conversion
+  len = json2cn(buf,len,out,dict);
   free(buf);
-  return outlen;
+
+  return len;
 }
 
 // fetch value at given index of cbor array

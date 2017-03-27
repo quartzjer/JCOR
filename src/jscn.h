@@ -15,3 +15,11 @@ int32_t jscn_geti(cb0r_t array, cb0r_t item);
 
 // fill in value for matching key in given map, returns value's index
 uint32_t jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value);
+
+// validates jscn and returns the given index value from the wrapper
+typedef enum {
+  JSCN_KEY_DATA = 1,
+  JSCN_KEY_DICT,
+  JSCN_KEY_WS
+} jscnkey_e;
+uint32_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t res, jscnkey_e key, cb0r_t value);

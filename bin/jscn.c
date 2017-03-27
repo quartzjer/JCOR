@@ -47,18 +47,18 @@ uint8_t *load(char *file, size_t *len)
 
 int save(char *file, uint8_t *bin, size_t len)
 {
-  if(!bin || !len) return -1;
+  if(!bin || !len) return 1;
 
   FILE *fd = fopen(file,"wb");
   if(!fd)
   {
     printf("Error writing to file %s: %s\n",file,strerror(errno));
-    return -1;
+    return errno;
   }
 
   int wrote = fwrite(bin,1,len,fd);
   fclose(fd);
-  return (wrote == (int)len)?0:-1;
+  return (wrote == (int)len)?0:2;
 }
 
 int main(int argc, char **argv)
@@ -78,18 +78,21 @@ int main(int argc, char **argv)
   if(!bin || lin <= 0) return -1;
 
   cb0r_t dict = NULL;
-  cb0r_s dres = {0,};
+  cb0r_s dres = {0,}, resv = {0,};
   if(file_dict)
   {
     size_t dlen = 0;
     uint8_t *dbin = load(file_dict,&dlen);
-    if(!dbin || dlen <= 0 || !cb0r(dbin,dbin+dlen,0,&dres) || dres.type != CB0R_ARRAY)
-    {
-      printf("dictionary file invalid: %s\n",file_dict);
+    uint8_t index = 0;
+    if(!dbin || dlen <= 0 || !(index = jscn2cbor(dbin, dlen, &dres, JSCN_KEY_DATA, &resv)) || resv.type != CB0R_ARRAY) {
+      printf("dictionary file invalid: %s\n", file_dict);
       return -1;
     }
-    dres.start = dbin;
-    dres.length = dlen;
+    // ugh, jscn2cbor needs refactor
+    cb0r(dres.start, dres.end, index - 1, &dres); 
+    dres.start = dres.end;
+    dres.end = resv.end;
+    dres.length = dres.end - dres.start;
     dict = &dres;
   }
 
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .jscn: %s\n",file_in);
-    return -1;
+    return 1;
   }
 
   int ret = save(file_out,bout,lout);
