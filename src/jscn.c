@@ -129,8 +129,15 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
       base64_encoder(state->out, blen, (char *)(state->out + blen));
       if (memcmp(state->out + blen, in, inlen) == 0)
       {
+        // check if the decoded is itself JSON
+        uint32_t blen2 = json2cn(state->out, blen, state->out + blen, state->dict);
+        if(blen2 && blen2 < blen){
+          printf("recursed %u < %u\n",blen2,blen);
+          memmove(state->out,state->out+blen,blen2);
+          blen = blen2;
+        }
         state->out += blen;
-      }else{
+      } else {
         blen = 0;
       }
     }
@@ -360,6 +367,15 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
         outlen += 2;
       }
     } break;
+    case CB0R_TAG: {
+      if(res.value == 42){
+        printf("recursing len %lu\n", res.end - res.start);
+//        outlen = jscn2on(res.start, res.end - res.start, out, dict);
+      }else{
+        printf("unsupported tag: %llu\n", res.value);
+      }
+      outlen = sprintf(out, "false");
+    } break;
     case CB0R_FALSE: {
       outlen = sprintf(out,"false");
     } break;
@@ -374,6 +390,7 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
     } break;
 
   }
+
   return outlen;
 }
 
@@ -394,7 +411,7 @@ uint32_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t res, jscnkey_e key, cb0r_t 
 
   uint32_t index = jscn_getkv(res, &(cb0r_s){.type = CB0R_INT, .value = key }, value);
   if(!index) {
-    printf("map does not contain key %u\n",(uint8_t)key);
+//    printf("map does not contain key %u\n",(uint8_t)key);
     return 0;
   }
 
@@ -408,7 +425,7 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
 
   // check for dictionary
   if(jscn2cbor(in, inlen, &res, JSCN_KEY_DICT, &resv)) {
-    printf("using dictionary %llu\n",resv.value);
+    printf("TODO using dictionary %llu\n",resv.value);
     // TODO 
   }
 
@@ -419,7 +436,7 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
 
   // check for whitespace hints
   if(jscn2cbor(in, inlen, &res, JSCN_KEY_WS, &resv) && resv.type == CB0R_ARRAY) {
-    printf("have whitespace hints\n");
+    printf("using whitespace hints\n");
     cb0r_s item = {0,};
     uint32_t i = 0;
     char *at = out;
@@ -525,7 +542,8 @@ uint32_t jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value)
 {
   if(!map || !key || !value) return 0;
   cb0r_s res = {0,};
-  for(uint32_t i = 0; cb0r(map->start, map->end, i, &res); i += 2) {
+  for(uint32_t i = 0; i <= (map->length * 2) && cb0r(map->start, map->end, i, &res); i += 2) {
+    if(res.type >= CB0R_ERR) break;
     if(res.type != key->type || res.value != key->value) continue;
     cb0r(map->start, map->end, i+1, value);
     return i+1;
