@@ -117,30 +117,35 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     }
 
   }else if(in[inlen] == '"'){ // js0n type detection pattern :/
+
+    // base64 value check
     uint32_t blen = 0;
-    uint8_t *start = state->out;
-    if(!iskey && inlen > 10 && (blen = base64_decoder((char*)in,inlen,NULL)))
-    {
-      // if is base64 write cbor tag and byte string
-      state->out += ctype(state->out, CB0R_TAG, 21);
-      state->out += ctype(state->out, CB0R_BYTE, blen);
-      base64_decoder((char *)in, inlen, state->out);
+    uint8_t *buff = state->out + 32; // temporary buffer padded out to leave room for writing tags
+    if(!iskey && inlen > 10 && (blen = base64_decoder((char *)in, inlen, buff))) {
       // validate exact match using out as buffer
-      base64_encoder(state->out, blen, (char *)(state->out + blen));
-      if (memcmp(state->out + blen, in, inlen) == 0)
-      {
+      base64_encoder(buff, blen, (char *)(buff + blen));
+      if(memcmp(buff + blen, in, inlen) == 0) {
+        state->out += ctype(state->out, CB0R_TAG, 21);
+
         // check if the decoded is itself JSON
-        uint32_t blen2 = json2cn(state->out, blen, state->out + blen, state->dict);
+        uint32_t blen2 = json2cn(buff, blen, buff + blen, state->dict);
         if(blen2 && blen2 < blen){
-          printf("recursed %u < %u\n",blen2,blen);
-          memmove(state->out,state->out+blen,blen2);
-          blen = blen2;
+          printf("recursed %u < %u: %.*s\n",blen2,blen,blen,(char*)buff);
+          memmove(state->out, buff + blen, blen2);
+          state->out += blen2;
+          return;
         }
+
+        // if just base64 insert decoded byte string
+        state->out += ctype(state->out, CB0R_BYTE, blen);
+        memmove(state->out, buff, blen);
         state->out += blen;
-      } else {
-        blen = 0;
+        return;
       }
+      // not b64, fall through
     }
+
+    // base16 value check
     if(!iskey && base16_check((char*)in,inlen))
     {
       blen = inlen/2;
@@ -148,20 +153,20 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
       state->out += ctype(state->out, CB0R_BYTE, blen);
       base16_decode((char *)in, inlen, state->out);
       state->out += blen;
+      return;
     }
+
     // write cbor UTF8
-    if(blen == 0)
-    {
-      state->out += ctype(state->out, CB0R_UTF8, inlen);
-      memcpy(state->out, in, inlen);
-      state->out += inlen;
-    }
-    // check dictionary
+    uint8_t *start = state->out;
+    state->out += ctype(state->out, CB0R_UTF8, inlen);
+    memcpy(state->out, in, inlen);
+    state->out += inlen;
+
+    // check dictionary for UTF8 swap
     cb0r_s item = {0,};
-    cb0r(start,state->out,0,&item);
+    cb0r(start, state->out, 0, &item);
     int32_t index = jscn_geti(state->dict, &item);
-    if(index > 0 && index < 256)
-    {
+    if(index > 0 && index < 256) {
       state->out = start;
       // cbor byte key to represent value
       state->out += ctype(state->out, CB0R_BYTE, 1);
@@ -345,15 +350,18 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
       outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"}":"]");
     } break;
     case CB0R_BASE64URL: {
+      out[0] = '"';
       cb0r_s res2 = {0,};
       cb0r(res.start,end,0,&res2);
-      if(res2.type == CB0R_BYTE)
-      {
-        out[0] = '"';
-        outlen = base64_encoder(res2.start,res2.length,out+1);
-        out[outlen+1] = '"';
-        outlen += 2;
+      if(res2.type == CB0R_TAG && res2.value == 42) {
+        printf("recursing len %lu\n", res.end - res.start);
+        outlen = jscn2on(res.start, res.end - res.start, out+1, dict);
+        outlen = base64_encoder((uint8_t *)(out + 1), outlen, out + 1);
+      }else if(res2.type == CB0R_BYTE) {
+        outlen = base64_encoder(res2.start, res2.length, out + 1);
       }
+      out[outlen + 1] = '"';
+      outlen += 2;
     } break;
     case CB0R_HEX: {
       cb0r_s res2 = {0,};
@@ -366,15 +374,6 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
         out[outlen+1] = '"';
         outlen += 2;
       }
-    } break;
-    case CB0R_TAG: {
-      if(res.value == 42){
-        printf("recursing len %lu\n", res.end - res.start);
-//        outlen = jscn2on(res.start, res.end - res.start, out, dict);
-      }else{
-        printf("unsupported tag: %llu\n", res.value);
-      }
-      outlen = sprintf(out, "false");
     } break;
     case CB0R_FALSE: {
       outlen = sprintf(out,"false");
@@ -499,7 +498,7 @@ size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   // convert to temporary json buffer
   uint8_t *buf = malloc(inlen*2); 
   uint32_t len = snprintf((char *)buf, inlen * 2, "{\"protected\":\"%.*s\",\"payload\":\"%.*s\",\"signature\":\"%.*s\",}", (int)((dot1 - encoded) - 1), encoded, (int)((dot2 - dot1) - 1), dot1, (int)((end - dot2) + 1), dot2);
-
+printf("encoding: %s\n",(char*)buf);
   // normal json->jscn conversion
   len = json2cn(buf,len,out,dict);
   free(buf);
