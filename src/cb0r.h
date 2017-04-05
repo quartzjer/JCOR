@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 
 #ifndef cb0r_h
 #define cb0r_h
@@ -60,9 +61,9 @@ typedef enum {
   CB0R_EMAX
 } cb0r_e;
 
+// this struct is for representing parsed data only and retains pointers to the original bytes, it's not designed for composing types from scratch
 typedef struct cb0r_s
 {
-  cb0r_e type;
   uint8_t *start;
   uint8_t *end;
   union { // different names/aliases for context readability based on type
@@ -70,10 +71,25 @@ typedef struct cb0r_s
     uint64_t count;
     uint64_t value;
   };
+  cb0r_e type:8;
+  uint8_t header; // size of the type header bytes, start+head points to type's contents (if any)
 } cb0r_s, *cb0r_t;
 
-// start at bin, returns end pointer (== stop if complete), either skips items or extracts result of current item
+// low-level, pass raw CBOR bytes via start/stop pointers, returns end pointer (== stop if complete)
+// can skip a given number of items and then will fill optional result w/ the current item
 uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result);
+
+// safer high-level wrapper to read raw CBOR
+bool cb0r_read(uint8_t *in, uint32_t len, cb0r_t result);
+
+// fetch a given item from an array (or map), 0 index
+bool cb0r_get(cb0r_t array, uint32_t index, cb0r_t result);
+
+// get the value of a given key from a map, number/bytes only used for some types
+bool cb0r_find(cb0r_t map, cb0r_e type, uint64_t number, uint8_t *bytes, cb0r_t result);
+
+// convenience method to write a header given a type and optional number (length/count/value), returns bytes written to out (max 9)
+uint8_t cb0r_write(uint8_t *out, cb0r_e type, uint64_t number);
 
 #ifdef __cplusplus
 } /* extern "C" */

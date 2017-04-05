@@ -18,84 +18,6 @@ typedef struct jscn_s {
   cb0r_t dict;
 } jscn_s, *jscn_t;
 
-// copied from https://gist.github.com/yinyin/2027912
-#ifdef __APPLE__
-#include <libkern/OSByteOrder.h>
-#define htobe16(x) OSSwapHostToBigInt16(x)
-#define htole16(x) OSSwapHostToLittleInt16(x)
-#define be16toh(x) OSSwapBigToHostInt16(x)
-#define le16toh(x) OSSwapLittleToHostInt16(x)
-#define htobe32(x) OSSwapHostToBigInt32(x)
-#define htole32(x) OSSwapHostToLittleInt32(x)
-#define be32toh(x) OSSwapBigToHostInt32(x)
-#define le32toh(x) OSSwapLittleToHostInt32(x)
-#define htobe64(x) OSSwapHostToBigInt64(x)
-#define htole64(x) OSSwapHostToLittleInt64(x)
-#define be64toh(x) OSSwapBigToHostInt64(x)
-#define le64toh(x) OSSwapLittleToHostInt64(x)
-#endif	/* __APPLE__ */
-
-size_t ctype(uint8_t *out, cb0r_e type, uint64_t value)
-{
-  out[0] = type << 5;
-  if(value <= 23)
-  {
-    out[0] |= value;
-    return 1;
-  }
-  if(value >= UINT32_MAX)
-  {
-    out[0] |= 27;
-    value = htobe64(value);
-    memcpy(out+1,&value,8);
-    return 9;
-  }
-  if(value > UINT16_MAX)
-  {
-    out[0] |= 26;
-    value = htobe32(value);
-    memcpy(out+1,&value,4);
-    return 5;
-  }
-  if(value >= UINT8_MAX)
-  {
-    out[0] |= 25;
-    value = htobe16(value);
-    memcpy(out+1,&value,2);
-    return 3;
-  }
-  out[0] |= 24;
-  out[1] = value;
-  return 2;
-}
-
-bool cbeq(cb0r_t a, cb0r_t b)
-{
-  if(!a || !b) return false;
-  if(a->type != b->type) return false;
-  if(a->value != b->value) return false;
-  switch(a->type)
-  {
-    case CB0R_INT:
-    case CB0R_NEG:
-    case CB0R_TAG:
-    case CB0R_SIMPLE:
-      return true;
-    case CB0R_UTF8:
-    case CB0R_BYTE:
-    case CB0R_MAP:
-    case CB0R_ARRAY:
-      if(!a->start || !b->start) return false;
-      if(!a->end || !b->end) return false;
-      if((a->end - a->start) != (b->end - b->start)) return false;
-      if(memcmp(a->start,b->start,(a->end - a->start)) != 0) return false;
-      return true;
-    default:
-      return false;
-  }
-  return false;
-}
-
 static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 {
   if(in[0] == '{' || in[0] == '[')
@@ -106,9 +28,9 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     for(;js0n(NULL,i,(char*)in,inlen,&len,NULL);i++);
     if(in[0] == '{')
     {
-      state->out += ctype(state->out, CB0R_MAP, i / 2);
+      state->out += cb0r_write(state->out, CB0R_MAP, i / 2);
     } else {
-      state->out += ctype(state->out, CB0R_ARRAY, i);
+      state->out += cb0r_write(state->out, CB0R_ARRAY, i);
     }
     for(uint16_t j=0;j<i;j++)
     {
@@ -125,7 +47,7 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
       // validate exact match using out as buffer
       base64_encoder(buff, blen, (char *)(buff + blen));
       if(memcmp(buff + blen, in, inlen) == 0) {
-        state->out += ctype(state->out, CB0R_TAG, 21);
+        state->out += cb0r_write(state->out, CB0R_TAG, 21);
 
         // check if the decoded is itself JSON
         uint32_t blen2 = json2cn(buff, blen, buff + blen, state->dict);
@@ -137,7 +59,7 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
         }
 
         // if just base64 insert decoded byte string
-        state->out += ctype(state->out, CB0R_BYTE, blen);
+        state->out += cb0r_write(state->out, CB0R_BYTE, blen);
         memmove(state->out, buff, blen);
         state->out += blen;
         return;
@@ -149,8 +71,8 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     if(!iskey && base16_check((char*)in,inlen))
     {
       blen = inlen/2;
-      state->out += ctype(state->out, CB0R_TAG, 23);
-      state->out += ctype(state->out, CB0R_BYTE, blen);
+      state->out += cb0r_write(state->out, CB0R_TAG, 23);
+      state->out += cb0r_write(state->out, CB0R_BYTE, blen);
       base16_decode((char *)in, inlen, state->out);
       state->out += blen;
       return;
@@ -158,7 +80,7 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
 
     // write cbor UTF8
     uint8_t *start = state->out;
-    state->out += ctype(state->out, CB0R_UTF8, inlen);
+    state->out += cb0r_write(state->out, CB0R_UTF8, inlen);
     memcpy(state->out, in, inlen);
     state->out += inlen;
 
@@ -169,25 +91,25 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
     if(index > 0 && index < 256) {
       state->out = start;
       // cbor byte key to represent value
-      state->out += ctype(state->out, CB0R_BYTE, 1);
+      state->out += cb0r_write(state->out, CB0R_BYTE, 1);
       state->out[0] = index;
       state->out++;
     }
   }else if(memcmp(in,"false",inlen) == 0){
-    state->out += ctype(state->out, CB0R_SIMPLE, 20);
+    state->out += cb0r_write(state->out, CB0R_SIMPLE, 20);
   }else if(memcmp(in,"true",inlen) == 0){
-    state->out += ctype(state->out, CB0R_SIMPLE, 21);
+    state->out += cb0r_write(state->out, CB0R_SIMPLE, 21);
   }else if(memcmp(in,"null",inlen) == 0){
-    state->out += ctype(state->out, CB0R_SIMPLE, 22);
+    state->out += cb0r_write(state->out, CB0R_SIMPLE, 22);
   }else if(memchr(in,'.',inlen) || memchr(in,'e',inlen) || memchr(in,'E',inlen)){
     // TODO write cbor tag 4 for decimal floats/exponents
   }else{
     // parse number, write cbor int
     long long num = strtoll((const char*)in,NULL,10);
     if(num < 0)
-      state->out += ctype(state->out, CB0R_NEG, (uint64_t)(~num));
+      state->out += cb0r_write(state->out, CB0R_NEG, (uint64_t)(~num));
     else
-      state->out += ctype(state->out, CB0R_INT, (uint64_t)num);
+      state->out += cb0r_write(state->out, CB0R_INT, (uint64_t)num);
   }
 }
 
@@ -222,19 +144,19 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
       // single space special case first
       if(wslen == 1 && ws[0] == ' ')
       {
-        state->out += ctype(state->out, CB0R_NEG, offset);
+        state->out += cb0r_write(state->out, CB0R_NEG, offset);
         prev++;
         break;
       }
 
       // then add offset
-      state->out += ctype(state->out, CB0R_INT, offset);
+      state->out += cb0r_write(state->out, CB0R_INT, offset);
 
       // count any repeating/leading spaces
       uint32_t spaces = 0;
       for(uint32_t j=0;j<wslen;j++) if(ws[j] == ' ') spaces++; else break;
       if(spaces) {
-        state->out += ctype(state->out, CB0R_NEG, spaces);
+        state->out += cb0r_write(state->out, CB0R_NEG, spaces);
         *start += spaces;
         prev += spaces;
         continue;
@@ -253,7 +175,7 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
       if(best == -1) printf("FATAL ERROR: %s\n",wsmatch);
 
       // save table id and advance
-      state->out += ctype(state->out, CB0R_INT, best);
+      state->out += cb0r_write(state->out, CB0R_INT, best);
       *start += ws_tablen[best]/2;
       prev += ws_tablen[best]/2;
 
@@ -279,23 +201,23 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 
   // first make the JSCN header map
   uint8_t *at = out;
-  at += ctype(at, CB0R_TAG, 42);
+  at += cb0r_write(at, CB0R_TAG, 42);
   uint8_t items = 1;
   if(dict) items++;
   if(ws[0]) items++;
-  at += ctype(at, CB0R_MAP, items);
+  at += cb0r_write(at, CB0R_MAP, items);
 
   if(dict)
   {
-    at += ctype(at, CB0R_INT, JSCN_KEY_DICT);
+    at += cb0r_write(at, CB0R_INT, JSCN_KEY_DICT);
     cb0r_s res = {0,};
     if(!jscn_getv(dict, 0, &res)) return 0;
-    at += ctype(at, CB0R_INT, res.value);
+    at += cb0r_write(at, CB0R_INT, res.value);
     printf("using dictionary %llu\n",res.value);
   }
 
   // generate into value
-  at += ctype(at, CB0R_INT, JSCN_KEY_DATA);
+  at += cb0r_write(at, CB0R_INT, JSCN_KEY_DATA);
   jscn_s state = {0,};
   state.start = at;
   state.out = at;
@@ -304,7 +226,7 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 
   // add any whitespace
   if(ws[0]) {
-    state.out += ctype(state.out, CB0R_INT, JSCN_KEY_WS);
+    state.out += cb0r_write(state.out, CB0R_INT, JSCN_KEY_WS);
     ws2cn(&state, in, inlen);
   }
 
@@ -522,8 +444,8 @@ bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val)
 int32_t jscn_geti(cb0r_t array, cb0r_t item)
 {
   if(!array || !item) return -1;
-  uint32_t vlen = item->end - item->start;
-  if(!vlen) return -1;
+  uint32_t len = item->end - item->start;
+  if(!len) return -1;
   cb0r_s res = {0,};
   if(!cb0r(array->start,array->start+array->length,0,&res)) return -1;
   if(res.type != CB0R_ARRAY) return -1;
@@ -531,7 +453,8 @@ int32_t jscn_geti(cb0r_t array, cb0r_t item)
   {
     cb0r_s res2 = {0,};
     if(!cb0r(res.start, res.end, i, &res2)) break;
-    if(cbeq(item,&res2)) return i;
+    if((res2.end - res2.start) != len) continue;
+    if(memcmp(item->start, res2.start, len) == 0) return i;
   }
   return -1;
 }

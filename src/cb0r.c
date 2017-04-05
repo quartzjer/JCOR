@@ -1,9 +1,9 @@
-// by jeremie miller - 2015,2016
+// by jeremie miller - 2015-2017
 // public domain UNLICENSE, contributions/improvements welcome via github at https://github.com/quartzjer/cb0r
 
 #include "cb0r.h"
 
-// unhelpful warning noise for syntax used in cb0r()
+// unhelpful legacy GCC warning noise for syntax used in cb0r()
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wpragmas"
 #pragma GCC diagnostic ignored "-Winitializer-overrides"
@@ -112,8 +112,7 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
 
   // skip fixed count of items in an array/map 
   l_skip:
-    if(count)
-    {
+    if(count) {
       // double map for actual count
       if(start[0] & 0x20) count <<= 1;
       end = cb0r(start+size+1,stop,count-1,NULL);
@@ -169,7 +168,7 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
   if(!skip)
   {
     if(!result) return end;
-    result->start = start+1;
+    result->start = start;
     result->end = end;
     result->type = type;
     result->value = 0;
@@ -177,7 +176,7 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
     {
       case CB0R_INT:
       case CB0R_NEG: 
-        size = end - result->start;
+        size = end - (start + 1);
       case CB0R_TAG: {
         switch(size)
         {
@@ -193,7 +192,6 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
             result->value |= (uint32_t)(start[size - 1]) << 8;
           case 1:
             result->value |= start[size];
-            result->start += size;
             break;
           case 0:
             result->value = start[0] & 0x1f;
@@ -215,14 +213,12 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
 
       case CB0R_BYTE:
       case CB0R_UTF8: {
-        result->start += size;
         if(count == CB0R_STREAM) result->count = count;
-        else result->length = end - result->start;
+        else result->length = end - (start + 1);
       } break;
 
       case CB0R_ARRAY:
       case CB0R_MAP: {
-        result->start += size;
         result->count = count;
       } break;
 
@@ -254,9 +250,10 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
       } break;
 
       default: {
-        result->type = CB0R_ERR;
+        if(result->type < CB0R_ERR) result->type = CB0R_ERR;
       }
     }
+    result->header = size + 1;
     return end;
   }
 
@@ -267,3 +264,147 @@ uint8_t *cb0r(uint8_t *start, uint8_t *stop, uint32_t skip, cb0r_t result)
   // tail recurse while skipping to not stack bloat
   return cb0r(end, stop, skip, result);
 }
+
+// safer high-level wrapper to read raw CBOR
+bool cb0r_read(uint8_t *in, uint32_t len, cb0r_t result)
+{
+  if(!in || !len || !result) return false;
+  cb0r(in, in+len, 0, result);
+  if(result->type >= CB0R_ERR) return false;
+  return true;
+}
+
+// fetch a given item from an array (or map), 0 index
+bool cb0r_get(cb0r_t array, uint32_t index, cb0r_t result)
+{
+  if(!array || !result) return false;
+  if(array->type != CB0R_ARRAY && array->type != CB0R_MAP) return false;
+  cb0r(array->start+array->header, array->end, index, result);
+  if(result->type >= CB0R_ERR) return false;
+  return true;
+}
+
+// get the value of a given key from a map, number/bytes only used for some types
+bool cb0r_find(cb0r_t map, cb0r_e type, uint64_t number, uint8_t *bytes, cb0r_t result)
+{
+  if(!map || !result) return false;
+  if(map->type != CB0R_MAP) return false;
+
+  for(uint32_t i = 0; i < map->length * 2; i += 2) {
+    cb0r_s item = {0,};
+    if(!cb0r_get(map, i, &item)) return false;
+    if(item.type != type) continue;
+    // either number compare or number+bytes compare
+    switch(type) {
+      case CB0R_INT:
+      case CB0R_NEG:
+      case CB0R_SIMPLE:
+      case CB0R_DATETIME:
+      case CB0R_EPOCH:
+      case CB0R_BIGNUM:
+      case CB0R_BIGNEG:
+      case CB0R_FRACTION:
+      case CB0R_BIGFLOAT:
+      case CB0R_BASE64URL:
+      case CB0R_BASE64:
+      case CB0R_HEX:
+      case CB0R_DATA:
+      case CB0R_FALSE:
+      case CB0R_TRUE:
+      case CB0R_NULL:
+      case CB0R_UNDEF:
+        if(number == item.value) return true;
+        break;
+      case CB0R_BYTE:
+      case CB0R_UTF8:
+      case CB0R_FLOAT:
+        // compare value by given length
+        if(number == item.length && memcmp(bytes, item.start+item.header, number) == 0) return true;
+        break;
+      case CB0R_MAP:
+      case CB0R_ARRAY:
+      case CB0R_TAG:
+        // compare value by parsed byte length
+        if(number == (uint64_t)(item.end - (item.start + item.header)) && memcmp(bytes, item.start + item.header, number) == 0) return true;
+        break;
+      default:;
+    }
+  }
+
+  return false;
+}
+
+// defined everywhere but OSX, copied from https://gist.github.com/yinyin/2027912
+#ifdef __APPLE__
+#include <libkern/OSByteOrder.h>
+#define htobe16(x) OSSwapHostToBigInt16(x)
+#define htole16(x) OSSwapHostToLittleInt16(x)
+#define be16toh(x) OSSwapBigToHostInt16(x)
+#define le16toh(x) OSSwapLittleToHostInt16(x)
+#define htobe32(x) OSSwapHostToBigInt32(x)
+#define htole32(x) OSSwapHostToLittleInt32(x)
+#define be32toh(x) OSSwapBigToHostInt32(x)
+#define le32toh(x) OSSwapLittleToHostInt32(x)
+#define htobe64(x) OSSwapHostToBigInt64(x)
+#define htole64(x) OSSwapHostToLittleInt64(x)
+#define be64toh(x) OSSwapBigToHostInt64(x)
+#define le64toh(x) OSSwapLittleToHostInt64(x)
+#endif /* __APPLE__ */
+
+uint8_t cb0r_write(uint8_t *out, cb0r_e type, uint64_t number)
+{
+  if(type >= CB0R_ERR) return 0;
+
+  // built-in types
+  switch(type) {
+    case CB0R_DATETIME: number = 0; break;
+    case CB0R_EPOCH: number = 1; break;
+    case CB0R_BIGNUM: number = 2; break;
+    case CB0R_BIGNEG: number = 3; break;
+    case CB0R_FRACTION: number = 4; break;
+    case CB0R_BIGFLOAT: number = 5; break;
+    case CB0R_BASE64URL: number = 21; break;
+    case CB0R_BASE64: number = 22; break;
+    case CB0R_HEX: number = 23; break;
+    case CB0R_DATA: number = 24; break;
+    case CB0R_FALSE: number = 25; break;
+    case CB0R_TRUE: number = 20; break;
+    case CB0R_NULL: number = 21; break;
+    case CB0R_UNDEF: number = 22; break;
+    case CB0R_FLOAT: { // incoming number is size of float
+      if(number == 2) number = 25;
+      else if(number == 4) number = 26;
+      else if(number == 8) number = 27;
+      else return 0;
+    }
+    default:;
+  }
+
+  out[0] = type << 5;
+  if(number <= 23) {
+    out[0] |= number;
+    return 1;
+  }
+  if(number >= UINT32_MAX) {
+    out[0] |= 27;
+    number = htobe64(number);
+    memcpy(out + 1, &number, 8);
+    return 9;
+  }
+  if(number > UINT16_MAX) {
+    out[0] |= 26;
+    number = htobe32(number);
+    memcpy(out + 1, &number, 4);
+    return 5;
+  }
+  if(number >= UINT8_MAX) {
+    out[0] |= 25;
+    number = htobe16(number);
+    memcpy(out + 1, &number, 2);
+    return 3;
+  }
+  out[0] |= 24;
+  out[1] = number;
+  return 2;
+}
+
