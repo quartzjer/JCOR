@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include "jscn.h"
+#include "../src/jscn.h"
 
 uint8_t *load(char *file, size_t *len)
 {
@@ -77,23 +77,18 @@ int main(int argc, char **argv)
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
 
-  cb0r_t dict = NULL;
-  cb0r_s dres = {0,}, resv = {0,};
-  if(file_dict)
-  {
+  jscn_s dbuf = {0,};
+  jscn_t dict = NULL;
+  if(file_dict) {
+  // if(result->jscn.count > 1 && cb0r_find(&(result->jscn), CB0R_INT, JSCN_KEY_DICT, NULL, &res)) {
+
     size_t dlen = 0;
     uint8_t *dbin = load(file_dict,&dlen);
-    uint8_t index = 0;
-    if(!dbin || dlen <= 0 || !(index = jscn2cbor(dbin, dlen, &dres, JSCN_KEY_DATA, &resv)) || resv.type != CB0R_ARRAY) {
-      printf("dictionary file invalid: %s\n", file_dict);
+    if(!dbin || dlen <= 0 || !jscn_load(dbin, dlen, &dbuf) || dbuf.data.type != CB0R_ARRAY) {
+      printf("dictionary file invalid: %s %u\n", file_dict, dbuf.data.type);
       return -1;
     }
-    // ugh, jscn2cbor needs refactor
-    cb0r(dres.start, dres.end, index - 1, &dres); 
-    dres.start = dres.end;
-    dres.end = resv.end;
-    dres.length = dres.end - dres.start;
-    dict = &dres;
+    dict = &dbuf;
   }
 
   // just bulk buffer working space
@@ -101,13 +96,20 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    lout = json2cn(bin,lin,bout,dict);
+    lout = jscn_parse(bin,lin,bout,dict);
     printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jwt")){
-    lout = jwt2cn(bin,lin,bout,dict);
+//    lout = jwt2cn(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jscn")){
-    lout = jscn2on(bin,lin,(char*)bout,dict);
+    jscn_s jscn = {0,};
+    if(!jscn_load(bin,lin,&jscn)) {
+      printf("jscn file failed to load: %s\n",file_in);
+      return 4;
+    }
+    // TODO dict lookup
+    jscn.dict = dict;
+    lout = jscn_stringify(&jscn,(char*)bout,4*lin);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .jscn: %s\n",file_in);

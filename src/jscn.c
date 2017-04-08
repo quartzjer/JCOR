@@ -11,14 +11,34 @@ static char *ws_table[24] = { "0a", "0a2020", "0a20202020", "0a202020202020", "0
 static uint8_t ws_tablen[24] = { 2, 6, 10, 14, 18, 22, 26, 30, 2, 4, 6, 8, 10, 12, 14, 16, 18, 2, 4, 8, 12, 6, 8, 10};
 #define WS_MAXLEN 32
 
-// working state
-typedef struct jscn_s {
+// internal working state
+typedef struct state_s {
   uint8_t *start;
   uint8_t *out;
-  cb0r_t dict;
-} jscn_s, *jscn_t;
+  jscn_t dict;
+} state_s, *state_t;
 
-static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
+// named keys for JSCN map
+enum {
+  JSCN_KEY_DATA = 1,
+  JSCN_KEY_DICT,
+  JSCN_KEY_WS
+};
+
+// match raw cbor value in array and return index (-1 if none)
+static int32_t get_index(cb0r_t array, uint8_t *str, uint32_t len)
+{
+  if(!array || !str || !len) return -1;
+  for(uint32_t i = 0; i < array->count; i++) {
+    cb0r_s res = {0,};
+    if(!cb0r(array->start + array->header, array->end, i, &res)) break;
+    if((res.end - (res.start + res.header)) != len) continue;
+    if(memcmp(str, res.start + res.header, len) == 0) return i;
+  }
+  return -1;
+}
+
+static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
 {
   if(in[0] == '{' || in[0] == '[')
   {
@@ -50,7 +70,7 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
         state->out += cb0r_write(state->out, CB0R_TAG, 21);
 
         // check if the decoded is itself JSON
-        uint32_t blen2 = json2cn(buff, blen, buff + blen, state->dict);
+        uint32_t blen2 = jscn_parse(buff, blen, buff + blen, state->dict);
         if(blen2 && blen2 < blen){
           printf("recursed %u < %u: %.*s\n",blen2,blen,blen,(char*)buff);
           memmove(state->out, buff + blen, blen2);
@@ -78,23 +98,20 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
       return;
     }
 
-    // write cbor UTF8
-    uint8_t *start = state->out;
-    state->out += cb0r_write(state->out, CB0R_UTF8, inlen);
-    memcpy(state->out, in, inlen);
-    state->out += inlen;
-
     // check dictionary for UTF8 swap
-    cb0r_s item = {0,};
-    cb0r(start, state->out, 0, &item);
-    int32_t index = jscn_geti(state->dict, &item);
-    if(index > 0 && index < 256) {
-      state->out = start;
+    int32_t index;
+    if(state->dict && (index = get_index(&(state->dict->data), in, inlen)) && index > 0 && index < 256) {
       // cbor byte key to represent value
       state->out += cb0r_write(state->out, CB0R_BYTE, 1);
       state->out[0] = index;
       state->out++;
+    }else{
+      // write CBOR UTF8
+      state->out += cb0r_write(state->out, CB0R_UTF8, inlen);
+      memcpy(state->out, in, inlen);
+      state->out += inlen;
     }
+
   }else if(memcmp(in,"false",inlen) == 0){
     state->out += cb0r_write(state->out, CB0R_SIMPLE, 20);
   }else if(memcmp(in,"true",inlen) == 0){
@@ -113,7 +130,7 @@ static void on2cn_part(jscn_t state, uint8_t *in, size_t inlen, bool iskey)
   }
 }
 
-static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
+static void ws2cn(state_t state, uint8_t *in, size_t inlen)
 {
   // get all whitespace pointers
   char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
@@ -189,7 +206,7 @@ static void ws2cn(jscn_t state, uint8_t *in, size_t inlen)
   free(whitespace);
 }
 
-size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
+size_t jscn_parse(uint8_t *in, size_t inlen, uint8_t *out, jscn_t dict)
 {
   if(!in || !inlen) return 0;
 
@@ -207,18 +224,17 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   if(ws[0]) items++;
   at += cb0r_write(at, CB0R_MAP, items);
 
-  if(dict)
-  {
+  if(dict) {
     at += cb0r_write(at, CB0R_INT, JSCN_KEY_DICT);
     cb0r_s res = {0,};
-    if(!jscn_getv(dict, 0, &res)) return 0;
+    if(!cb0r_get(&(dict->data), 0, &res)) return 0;
     at += cb0r_write(at, CB0R_INT, res.value);
     printf("using dictionary %llu\n",res.value);
   }
 
   // generate into value
   at += cb0r_write(at, CB0R_INT, JSCN_KEY_DATA);
-  jscn_s state = {0,};
+  state_s state = {0,};
   state.start = at;
   state.out = at;
   state.dict = dict;
@@ -233,16 +249,16 @@ size_t json2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   return state.out - out;
 }
 
-static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb0r_t dict)
+static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, jscn_t dict)
 {
   size_t outlen = 0;
   cb0r_s res = {0,};
   uint8_t *end = cb0r(in,in+inlen,skip,&res);
 
   // dictionary replacement swap
-  if(res.type == CB0R_BYTE && res.length == 1 && !jscn_getv(dict,res.start[0],&res))
+  if(res.type == CB0R_BYTE && res.length == 1 && (!dict || !cb0r_get(&(dict->data), res.start[res.header], &res)))
   {
-    printf("not found in dictionary: %u\n",res.start[0]);
+    printf("not found in dictionary: %u\n",res.start[res.header]);
     return 0;
   }
 
@@ -256,7 +272,7 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
       outlen = sprintf(out,"-%llu",res.value+1);
     } break;
     case CB0R_UTF8: {
-      outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start);
+      outlen = sprintf(out,"\"%.*s\"",(int)res.length,res.start+res.header);
     } break;
     case CB0R_ARRAY:
     case CB0R_MAP: {
@@ -264,35 +280,37 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
       for(uint32_t i=0;i<res.count;i++)
       {
         if(i) outlen += sprintf(out+outlen,",");
-        outlen += cn2on_part(res.start,end-res.start,out+outlen,i,dict);
+        outlen += cn2on_part(res.start+res.header,end-(res.start+res.header),out+outlen,i,dict);
         if(res.type != CB0R_MAP) continue;
         outlen += sprintf(out+outlen,":");
-        outlen += cn2on_part(res.start,end-res.start,out+outlen,++i,dict);
+        outlen += cn2on_part(res.start+res.header,end-(res.start+res.header),out+outlen,++i,dict);
       }
       outlen += sprintf(out+outlen,(res.type==CB0R_MAP)?"}":"]");
     } break;
     case CB0R_BASE64URL: {
       out[0] = '"';
       cb0r_s res2 = {0,};
-      cb0r(res.start,end,0,&res2);
-      if(res2.type == CB0R_TAG && res2.value == 42) {
-        printf("recursing len %lu\n", res.end - res.start);
-        outlen = jscn2on(res.start, res.end - res.start, out+1, dict);
+      cb0r(res.start+res.header,end,0,&res2);
+      jscn_s jscn = {0,};
+      if(res2.type == CB0R_TAG && res2.value == 42 && jscn_load(res.start + res.header, res.end - (res.start + res.header), &jscn)) {
+        jscn.dict = dict;
+        printf("recursing len %lu\n", res.end - (res.start+res.header));
+        outlen = jscn_stringify(&jscn, out+1, 0);
         outlen = base64_encoder((uint8_t *)(out + 1), outlen, out + 1);
       }else if(res2.type == CB0R_BYTE) {
-        outlen = base64_encoder(res2.start, res2.length, out + 1);
+        outlen = base64_encoder(res2.start+res.header, res2.length, out + 1);
       }
       out[outlen + 1] = '"';
       outlen += 2;
     } break;
     case CB0R_HEX: {
       cb0r_s res2 = {0,};
-      cb0r(res.start,end,0,&res2);
+      cb0r(res.start+res.header,end,0,&res2);
       if(res2.type == CB0R_BYTE)
       {
         out[0] = '"';
         outlen = res2.length*2;
-        base16_encode(res2.start,res2.length,out+1);
+        base16_encode(res2.start+res.header,res2.length,out+1);
         out[outlen+1] = '"';
         outlen += 2;
       }
@@ -316,53 +334,43 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
 }
 
 // validates jscn and returns the given index value from the wrapper
-uint32_t jscn2cbor(uint8_t *in, size_t inlen, cb0r_t res, jscnkey_e key, cb0r_t value)
+bool jscn_load(uint8_t *in, size_t inlen, jscn_t result)
 {
-  uint8_t *end = cb0r(in,in+inlen,0,res);
-  if(res->type != CB0R_TAG || res->value != 42) {
-    printf("CBOR is not tagged as JSCN: %u/%llu\n", res->type, res->value);
-    return 0;
+  cb0r_s res = {0,};
+  cb0r(in, in + inlen, 0, &res);
+  if(res.type != CB0R_TAG || res.value != 42) {
+    printf("CBOR is not tagged as JSCN: %u/%llu\n", res.type, res.value);
+    return false;
   }
 
-  end = cb0r(res->start, in + inlen, 0, res);
-  if(!end || res->type != CB0R_MAP || !res->count) {
-    printf("JSCN does not begin with a map: %u\n", res->type);
-    return 0;
+  cb0r(res.start + res.header, res.end, 0, &(result->jscn));
+  if(result->jscn.type != CB0R_MAP || !result->jscn.count) {
+    printf("JSCN does not begin with a map: %u\n", result->jscn.type);
+    return false;
   }
 
-  uint32_t index = jscn_getkv(res, &(cb0r_s){.type = CB0R_INT, .value = key }, value);
-  if(!index) {
-//    printf("map does not contain key %u\n",(uint8_t)key);
-    return 0;
+  if(!cb0r_find(&(result->jscn), CB0R_INT, JSCN_KEY_DATA, NULL, &(result->data))) {
+    printf("JSCN does not contain data");
+    return false;
   }
 
-  return index;
+  return true;
 }
 
-size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
+size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
 {
-  size_t outlen = 0;
-  cb0r_s res = {0,}, resv = {0,};
-
-  // check for dictionary
-  if(jscn2cbor(in, inlen, &res, JSCN_KEY_DICT, &resv)) {
-    printf("TODO using dictionary %llu\n",resv.value);
-    // TODO 
-  }
-
-  // extract the data and convert it
-  uint32_t index = jscn2cbor(in, inlen, &res, JSCN_KEY_DATA, &resv);
-  if(!index) return 0;
-  outlen = cn2on_part(res.start, res.end - res.start, out, index, dict);
+  // convert the raw data
+  size_t outlen = cn2on_part(jscn->data.start, jscn->data.end - jscn->data.start, out, 0, jscn->dict);
 
   // check for whitespace hints
-  if(jscn2cbor(in, inlen, &res, JSCN_KEY_WS, &resv) && resv.type == CB0R_ARRAY) {
+  cb0r_s res = {0,};
+  if(cb0r_find(&(jscn->jscn), CB0R_INT, JSCN_KEY_WS, NULL, &res) && res.type == CB0R_ARRAY) {
     printf("using whitespace hints\n");
     cb0r_s item = {0,};
     uint32_t i = 0;
     char *at = out;
     while(item.type < CB0R_ERR) {
-      cb0r(resv.start, resv.start + resv.length, i++, &item);
+      cb0r(res.start + res.header, res.start + res.header + res.length, i++, &item);
 
       // insert single space first
       if(item.type == CB0R_NEG) {
@@ -377,7 +385,7 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
       // insert variable lengths
       if(item.type == CB0R_INT) {
         at += item.value;
-        cb0r(resv.start, resv.start + resv.length, i++, &item);
+        cb0r(res.start + res.header, res.start + res.header + res.length, i++, &item);
         // repeating whitespaces
         if(item.type == CB0R_NEG) {
           memmove(at + item.value, at, outlen - (at - out));
@@ -404,6 +412,7 @@ size_t jscn2on(uint8_t *in, size_t inlen, char *out, cb0r_t dict)
   return outlen;
 }
 
+/*
 size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
 {
   char *encoded = (char*)in;
@@ -422,53 +431,9 @@ size_t jwt2cn(uint8_t *in, size_t inlen, uint8_t *out, cb0r_t dict)
   uint32_t len = snprintf((char *)buf, inlen * 2, "{\"protected\":\"%.*s\",\"payload\":\"%.*s\",\"signature\":\"%.*s\",}", (int)((dot1 - encoded) - 1), encoded, (int)((dot2 - dot1) - 1), dot1, (int)((end - dot2) + 1), dot2);
 printf("encoding: %s\n",(char*)buf);
   // normal json->jscn conversion
-  len = json2cn(buf,len,out,dict);
+  len = jscn_parse(buf,len,out,dict);
   free(buf);
 
   return len;
 }
-
-// fetch value at given index of cbor array
-bool jscn_getv(cb0r_t array, uint32_t index, cb0r_t val)
-{
-  cb0r_s res = {0,};
-  uint8_t *end = cb0r(array->start,array->start+array->length,0,&res);
-  if(res.type != CB0R_ARRAY) return false;
-  if(index >= res.count) return false;
-  if(!cb0r(res.start,end,index,val)) return false;
-  return true;
-}
-
-
-// match raw cbor value in array and return index (-1 if none)
-int32_t jscn_geti(cb0r_t array, cb0r_t item)
-{
-  if(!array || !item) return -1;
-  uint32_t len = item->end - item->start;
-  if(!len) return -1;
-  cb0r_s res = {0,};
-  if(!cb0r(array->start,array->start+array->length,0,&res)) return -1;
-  if(res.type != CB0R_ARRAY) return -1;
-  for(uint32_t i=0;i<res.count;i++)
-  {
-    cb0r_s res2 = {0,};
-    if(!cb0r(res.start, res.end, i, &res2)) break;
-    if((res2.end - res2.start) != len) continue;
-    if(memcmp(item->start, res2.start, len) == 0) return i;
-  }
-  return -1;
-}
-
-// returns index of value
-uint32_t jscn_getkv(cb0r_t map, cb0r_t key, cb0r_t value)
-{
-  if(!map || !key || !value) return 0;
-  cb0r_s res = {0,};
-  for(uint32_t i = 0; i <= (map->length * 2) && cb0r(map->start, map->end, i, &res); i += 2) {
-    if(res.type >= CB0R_ERR) break;
-    if(res.type != key->type || res.value != key->value) continue;
-    cb0r(map->start, map->end, i+1, value);
-    return i+1;
-  }
-  return 0;
-}
+*/
