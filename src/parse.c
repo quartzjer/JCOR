@@ -171,21 +171,19 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
       }
 
       // look for the longest prefix from the table
-      char wsmatch[WS_MAXLEN] = {0,};
-      base16_encode(ws, (wslen > WS_MAXLEN) ? WS_MAXLEN : wslen, wsmatch);
       int8_t best = -1;
       for(uint8_t j=0;j<=23;j++) {
         // the current ws must match 
-        if(ws_tablen[j] > (wslen*2)) continue;
-        if(memcmp(wsmatch, ws_table[j], ws_tablen[j]) != 0) continue;
+        if(ws_tablen[j] > wslen) continue;
+        if(memcmp(ws, ws_table[j], ws_tablen[j]) != 0) continue;
         best = j;
       }
-      if(best == -1) printf("FATAL ERROR: %s\n",wsmatch);
+      if(best == -1) printf("FATAL ERROR: [%.*s]\n", wslen, ws);
 
       // save table id and advance
       state->out += cb0r_write(state->out, CB0R_INT, best);
-      *start += ws_tablen[best]/2;
-      prev += ws_tablen[best]/2;
+      *start += ws_tablen[best];
+      prev += ws_tablen[best];
 
     } while(*start < *end);
   }

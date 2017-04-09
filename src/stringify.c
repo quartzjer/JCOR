@@ -136,9 +136,9 @@ uint32_t jscn_stringify(jscn_t jscn, char *json)
           continue;
         }
         if(item.type == CB0R_INT && item.value < 24) {
-          uint8_t len = ws_tablen[item.value]/2;
+          uint8_t len = ws_tablen[item.value];
           memmove(at + len, at, outlen - (at - json));
-          base16_decode(ws_table[item.value],ws_tablen[item.value],(uint8_t*)at);
+          memcpy((uint8_t *)at, ws_table[item.value], len);
           at += len;
           outlen += len;
           continue;

@@ -21,9 +21,9 @@ bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result);
 bool jscn_dictionary(jscn_t jscn, cb0r_t id);
 
 // whitespace table (used by parse and stringify)
-static char *ws_table[24] = { "0a", "0a2020", "0a20202020", "0a202020202020", "0a2020202020202020", "0a20202020202020202020", "0a202020202020202020202020", "0a2020202020202020202020202020", "09", "0a09", "0a0909", "0a090909", "0a09090909", "0a0909090909", "0a090909090909", "0a09090909090909", "0a0909090909090909", "0d", "0d0a", "0d0a2020", "0d0a20202020", "0d0a09", "0d0a0909", "0d0a090909" };
-static uint8_t ws_tablen[24] = { 2, 6, 10, 14, 18, 22, 26, 30, 2, 4, 6, 8, 10, 12, 14, 16, 18, 2, 4, 8, 12, 6, 8, 10 };
-#define WS_MAXLEN 32
+static const char *ws_table[24] = { "\n", "\n  ", "\n    ", "\n      ", "\n        ", "\n          ", "\n            ", "\n              ", "\t", "\n\t", "\n\t\t", "\n\t\t\t", "\n\t\t\t\t", "\n\t\t\t\t\t", "\n\t\t\t\t\t\t", "\n\t\t\t\t\t\t\t", "\n\t\t\t\t\t\t\t\t", "\r", "\r\n", "\r\n  ", "\r\n    ", "\r\n\t", "\r\n\t\t", "\r\n\t\t\t" };
+static uint8_t ws_tablen[24] = { 1, 3, 5, 7, 9, 11, 13, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 4, 6, 3, 4, 5 };
+#define WS_MAXLEN 16
 
 // named keys for JSCN map
 enum {
