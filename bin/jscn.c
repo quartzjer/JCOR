@@ -93,23 +93,28 @@ int main(int argc, char **argv)
 
   // just bulk buffer working space
   uint8_t *bout = malloc(4*lin);
+  jscn_s jscn = {0,};
+  jscn.dict = dict;
 
   if(strstr(file_in,".json"))
   {
-    lout = jscn_parse(bin,lin,bout,dict);
-    printf("serialized json[%ld] to cbor[%ld]\n",lin,lout);
+    if(!jscn_parse((char *)bin, lin, bout, &jscn)) {
+      printf("JSON parsing failed: %s\n",file_in);
+      return 3;
+    }
+    lout = jscn.jscn.end - bout;
+    printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
   }else if(strstr(file_in,".jwt")){
 //    lout = jwt2cn(bin,lin,bout,dict);
     printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jscn")){
-    jscn_s jscn = {0,};
     if(!jscn_load(bin,lin,&jscn)) {
       printf("jscn file failed to load: %s\n",file_in);
       return 4;
     }
     // TODO dict lookup
     jscn.dict = dict;
-    lout = jscn_stringify(&jscn,(char*)bout,4*lin);
+    lout = jscn_stringify(&jscn,(char*)bout);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
   }else{
     printf("file must be .json or .jscn: %s\n",file_in);

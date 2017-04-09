@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "jscn.h"
 #include "js0n.h"
 #include "base64.h"
@@ -38,6 +39,8 @@ static int32_t get_index(cb0r_t array, uint8_t *str, uint32_t len)
   return -1;
 }
 
+static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict);
+
 static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
 {
   if(in[0] == '{' || in[0] == '[')
@@ -70,7 +73,7 @@ static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
         state->out += cb0r_write(state->out, CB0R_TAG, 21);
 
         // check if the decoded is itself JSON
-        uint32_t blen2 = jscn_parse(buff, blen, buff + blen, state->dict);
+        uint32_t blen2 = on2cn_wrap((char*)buff, blen, buff + blen, state->dict);
         if(blen2 && blen2 < blen){
           printf("recursed %u < %u: %.*s\n",blen2,blen,blen,(char*)buff);
           memmove(state->out, buff + blen, blen2);
@@ -206,14 +209,12 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
   free(whitespace);
 }
 
-size_t jscn_parse(uint8_t *in, size_t inlen, uint8_t *out, jscn_t dict)
+static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
 {
-  if(!in || !inlen) return 0;
-
   // validate any json first w/ full scan by looking for invalid key
   size_t err = 0;
   char *ws[2] = {NULL,"end"}; // notice if there's any whitespace also
-  js0n("\0", 1, (char *)in, inlen, &err, ws);
+  js0n("\0", 1, json, len, &err, ws);
   if(err) return 0;
 
   // first make the JSCN header map
@@ -238,15 +239,28 @@ size_t jscn_parse(uint8_t *in, size_t inlen, uint8_t *out, jscn_t dict)
   state.start = at;
   state.out = at;
   state.dict = dict;
-  on2cn_part(&state, in, inlen, false);
+  on2cn_part(&state, (uint8_t *)json, len, false);
 
   // add any whitespace
   if(ws[0]) {
     state.out += cb0r_write(state.out, CB0R_INT, JSCN_KEY_WS);
-    ws2cn(&state, in, inlen);
+    ws2cn(&state, (uint8_t *)json, len);
   }
 
   return state.out - out;
+}
+
+// parses raw JSON into JSCN (jscn buffer must be 2*len)
+bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
+{
+  assert(jscn);
+  assert(result);
+  if(!json || !len) return false;
+
+  uint32_t jscn_len = on2cn_wrap(json, len, jscn, result->dict);
+  if(!jscn_len) return false;
+
+  return jscn_load(jscn, jscn_len, result);
 }
 
 static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, jscn_t dict)
@@ -295,7 +309,7 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, js
       if(res2.type == CB0R_TAG && res2.value == 42 && jscn_load(res.start + res.header, res.end - (res.start + res.header), &jscn)) {
         jscn.dict = dict;
         printf("recursing len %lu\n", res.end - (res.start+res.header));
-        outlen = jscn_stringify(&jscn, out+1, 0);
+        outlen = jscn_stringify(&jscn, out+1);
         outlen = base64_encoder((uint8_t *)(out + 1), outlen, out + 1);
       }else if(res2.type == CB0R_BYTE) {
         outlen = base64_encoder(res2.start+res.header, res2.length, out + 1);
@@ -333,11 +347,14 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, js
   return outlen;
 }
 
-// validates jscn and returns the given index value from the wrapper
-bool jscn_load(uint8_t *in, size_t inlen, jscn_t result)
+// validates JSCN and loads data, fills result if successful
+bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result)
 {
+  assert(result);
+  if(!jscn || !len) return false;
+
   cb0r_s res = {0,};
-  cb0r(in, in + inlen, 0, &res);
+  cb0r(jscn, jscn + len, 0, &res);
   if(res.type != CB0R_TAG || res.value != 42) {
     printf("CBOR is not tagged as JSCN: %u/%llu\n", res.type, res.value);
     return false;
@@ -357,10 +374,18 @@ bool jscn_load(uint8_t *in, size_t inlen, jscn_t result)
   return true;
 }
 
-size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
+// converts JSCN back into JSON (returns size required if json is NULL)
+uint32_t jscn_stringify(jscn_t jscn, char *json)
 {
+  if(!jscn) return 0;
+
+  if(!json) {
+    printf("TODO\n");
+    return 0;
+  }
+
   // convert the raw data
-  size_t outlen = cn2on_part(jscn->data.start, jscn->data.end - jscn->data.start, out, 0, jscn->dict);
+  uint32_t outlen = cn2on_part(jscn->data.start, jscn->data.end - jscn->data.start, json, 0, jscn->dict);
 
   // check for whitespace hints
   cb0r_s res = {0,};
@@ -368,14 +393,14 @@ size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
     printf("using whitespace hints\n");
     cb0r_s item = {0,};
     uint32_t i = 0;
-    char *at = out;
+    char *at = json;
     while(item.type < CB0R_ERR) {
       cb0r(res.start + res.header, res.start + res.header + res.length, i++, &item);
 
       // insert single space first
       if(item.type == CB0R_NEG) {
         at += item.value;
-        memmove(at+1,at,outlen-(at-out));
+        memmove(at+1,at,outlen-(at-json));
         at[0] = ' ';
         at++;
         outlen++;
@@ -388,7 +413,7 @@ size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
         cb0r(res.start + res.header, res.start + res.header + res.length, i++, &item);
         // repeating whitespaces
         if(item.type == CB0R_NEG) {
-          memmove(at + item.value, at, outlen - (at - out));
+          memmove(at + item.value, at, outlen - (at - json));
           memset(at,' ',item.value);
           at += item.value;
           outlen += item.value;
@@ -396,7 +421,7 @@ size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
         }
         if(item.type == CB0R_INT && item.value < 24) {
           uint8_t len = ws_tablen[item.value]/2;
-          memmove(at + len, at, outlen - (at - out));
+          memmove(at + len, at, outlen - (at - json));
           base16_decode(ws_table[item.value],ws_tablen[item.value],(uint8_t*)at);
           at += len;
           outlen += len;
@@ -406,7 +431,6 @@ size_t jscn_stringify(jscn_t jscn, char *out, size_t len)
 
       break;
     }
-
   }
 
   return outlen;

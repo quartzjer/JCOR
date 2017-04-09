@@ -26,8 +26,8 @@ A subset of CBOR that perfectly mirrors any JSON string into a highly condensed 
 * Support for custom dictionaries by using a CBOR byte string (type 2) as the lookup key, the value of which must be resolved to an above CBOR value that replaces the byte string
 * When condensing JSON any UTF-8 strings (keys or values) are first checked against the active dictionary for possible replacement
 * The replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the dictionary from 1-255, value 0 and byte lengths >1 are currently reserved
-* Dictionaries are themselves identified with a unique integer id, public well-known dictionaries should use positive integers and private / application-specific dictionaries should use negative integers, id 0 is reserverd
-* A dictionary is represented in JSCN as the condensed form of an array where the first value is the dictionary id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
+* Dictionaries are themselves identified with a unique string or integer ids, the strings must have a known mapping for apps using them and a registry will be created to assign integer ids to public well-known dictionaries
+* A dictionary is represented in JSCN as an array where the first value is the dictionary id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
 * Dictionaries may be combined when the JSCN contains another dictionary id, any byte strings in the definition array are then replaced with the key from the given directory
 
 ### Whitespace Hints
