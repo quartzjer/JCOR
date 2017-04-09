@@ -3,9 +3,9 @@
 #include "cb0r.h"
 
 typedef struct jscn_s {
-  struct jscn_s *dict;
-  cb0r_s jscn;
-  cb0r_s data;
+  struct jscn_s *dict; // optional pointer to dictionary
+  cb0r_s map; // the JSCN wrapper map
+  cb0r_s data; // the contained CBOR data
 } jscn_s, *jscn_t;
 
 // parses raw JSON into JSCN (jscn buffer must be 2*len)

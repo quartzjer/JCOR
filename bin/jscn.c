@@ -102,7 +102,7 @@ int main(int argc, char **argv)
       printf("JSON parsing failed: %s\n",file_in);
       return 3;
     }
-    lout = jscn.jscn.end - bout;
+    lout = jscn.map.end - bout;
     printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
   }else if(strstr(file_in,".jwt")){
 //    lout = jwt2cn(bin,lin,bout,dict);

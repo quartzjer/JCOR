@@ -360,13 +360,13 @@ bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result)
     return false;
   }
 
-  cb0r(res.start + res.header, res.end, 0, &(result->jscn));
-  if(result->jscn.type != CB0R_MAP || !result->jscn.count) {
-    printf("JSCN does not begin with a map: %u\n", result->jscn.type);
+  cb0r(res.start + res.header, res.end, 0, &(result->map));
+  if(result->map.type != CB0R_MAP || !result->map.count) {
+    printf("JSCN does not begin with a map: %u\n", result->map.type);
     return false;
   }
 
-  if(!cb0r_find(&(result->jscn), CB0R_INT, JSCN_KEY_DATA, NULL, &(result->data))) {
+  if(!cb0r_find(&(result->map), CB0R_INT, JSCN_KEY_DATA, NULL, &(result->data))) {
     printf("JSCN does not contain data");
     return false;
   }
@@ -389,7 +389,7 @@ uint32_t jscn_stringify(jscn_t jscn, char *json)
 
   // check for whitespace hints
   cb0r_s res = {0,};
-  if(cb0r_find(&(jscn->jscn), CB0R_INT, JSCN_KEY_WS, NULL, &res) && res.type == CB0R_ARRAY) {
+  if(cb0r_find(&(jscn->map), CB0R_INT, JSCN_KEY_WS, NULL, &res) && res.type == CB0R_ARRAY) {
     printf("using whitespace hints\n");
     cb0r_s item = {0,};
     uint32_t i = 0;
