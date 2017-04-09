@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS+=-g -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
-INCLUDE+=-Isrc
-HEADERS=$(wildcard src/*.h)
+INCLUDE+=-Iinclude
+HEADERS=$(wildcard include/*.h)
 SOURCES=$(wildcard src/*.c)
 OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 BINS=$(wildcard bin/*.c)
