@@ -10,6 +10,9 @@ ALL=$(SOURCES) $(BINS) $(TESTSC)
 DEPS=$(patsubst %.c,%.o,$(ALL))
 TESTS=$(patsubst test/%.c,%,$(TESTSC))
 
+GOPATH?=/usr/local/gopath
+MMARK?=$(GOPATH)/bin/mmark
+XML2RFC?=xml2rfc
 
 all: jscn
 
@@ -29,9 +32,22 @@ test: jscn
 	hexdump test/test1d.jscn  | cut -c 8-
 	./bin/jscn test/test1d.jscn test/test1d.json test/dict1.jscn
 
+spec: json_constrained_notation.html
+
+%.xml: %.md
+	$(MMARK) --xml2 --page $< > $@
+%.html %.txt: %.xml
+	$(XML2RFC) --html --text $<
+
 clean:
 	rm -f bin/jscn
 	rm -f $(DEPS)
+	rm -f json_constrained_notation.html json_constrained_notation.xml json_constrained_notation.txt
 
+req: 
+	@echo brew install go
+	@echo export GOPATH=~/go
+	@echo go get github.com/miekg/mmark/mmark
+	@echo pip3 install xml2rfc
 
-.PHONY: all jscn clean test
+.PHONY: all jscn clean test req spec

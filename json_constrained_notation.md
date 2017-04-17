@@ -1,6 +1,33 @@
-# JSCN - JSON Constrained Notation
-
-# Introduction
+% Title = "JSON Constrained Notation"
+% abbrev = "jscn"
+% category = "std"
+% docName = "json-constrained-notation"
+% area = ""
+% workgroup = ""
+% date = 2017-04-07T00:00:00Z
+% ipr = "none"
+%
+% keyword = ["JSON", "CBOR", "constrained", "JOSE", "JWT"]
+%
+% [pi]
+% private = "Draft"
+% compact = "yes"
+% subcompact = "no"
+% tocdepth = "5"
+% topblock = "yes"
+% comments = "no"
+% iprnotified = "no"
+%
+% [[author]]
+% initials="J."
+% surname="Miller"
+% fullname="Jeremie Miller"
+%   [author.address]
+%   email = "jeremie@jabber.org"
+<!--
+  NOTE:  This Markdown file and any generated XML file is input used to produce the authoritative copy of an IETF specification.  The authoritative copy is the HTML output.  This XML source file is not authoritative.  The statement ipr="none" is present only to satisfy the document compilation tool and is not indicative of the IPR status of this specification.  The IPR for this specification is described in the "Notices" section.  This is a public IETF document and not a private document, as the private="..." declaration could be taken to indicate.
+-->
+.# Abstract
 
 The adoption of JSON is widespread in all traditional networking and software environments, but there has been more limited use in embedded and constrained environments due to the always-minimized storage and network capacities inherent in low-cost and low-power devices.
 
@@ -8,7 +35,9 @@ This specification addresses the challenges of using JSON with constrained devic
 
 A driving goal of this specification has been to enable the direct use of all existing JOSE standards unmodified in a constrained environment and to enable the immediate adoption of OpenID Connect as an Identity Management standard for the IoT.
 
-# Overview
+{mainmatter}
+
+# Introduction
 
 JSCN is a subset of CBOR, the rules for re-coding the JSON structures all map directly to their CBOR parallels whenever possible.  Only when JSON string values can be introspected to contain data that has a more compact CBOR type (such as base64url and hexadecimal encoding) is additional mapping performed when re-coding the string value.
 
@@ -18,13 +47,22 @@ A significant reduction in space is also provided in JSCN when the device and ap
 
 The CBOR resulting from a re-coding of JSON to JSCN may have slight differences based on the capabilities of the transcoder software, this specification does not currently provide for the JSCN byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical as well as the view any constrained device has of the data values will be uniform.
 
-# JSCN Tags
+## Requirements Notations and Conventions
 
-Introduce a new CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map with integer keys containing minimally a `1` key with the JSCN value, optional additional items in the map are metadata about it such as the dictionary (`2`) and whitespace hints (`3`).
+The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**MAY**", and "**OPTIONAL**" in this document are to be interpreted as described in RFC 2119 [@!RFC2119].
 
-Introduce CBOR tag 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values.
+## Terminology
 
-# Coding
+This specification defines the following terms:
+
+- JSCN Tag
+  - CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map with integer keys containing minimally a `1` key with the JSCN value, optional additional items in the map are metadata about it such as the dictionary (`2`) and whitespace hints (`3`).
+- Case Tag
+  - CBOR tag id 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values.
+- Dictionary
+- Whitespace Hints
+
+# CBOR Encoding
 
 ## Structures
 
@@ -112,7 +150,7 @@ JSON (318 bytes) to JSCN (189 bytes) with no dictionary and whitespace preserved
 }
 ```
 
-```
+``` ascii-art
   Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 	
 00000000: D8 2A A2 01 A6 63 6D 61 70 65 76 61 6C 75 65 65    X*".&cmapevaluee
 00000010: 61 72 72 61 79 84 63 6F 6E 65 63 74 77 6F 65 74    array.conectwoet
@@ -129,7 +167,7 @@ JSON (318 bytes) to JSCN (189 bytes) with no dictionary and whitespace preserved
 ```
 
 With no whitespace and using a dictionary of `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]` (93 bytes):
-```
+``` ascii-art
   Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 	
 00000000: D8 2A A2 02 01 01 A6 41 01 41 02 41 03 84 41 04    X*"...&A.A.A..A.
 00000010: 41 05 41 06 18 2A 41 07 F5 41 08 38 29 41 09 83    A.A..*A.uA.8)A..
@@ -138,3 +176,17 @@ With no whitespace and using a dictionary of `[1,"map","value","array","one","tw
 00000040: FF FF 1B 00 00 00 01 00 00 00 00 1B 00 01 00 00    ................
 00000050: 00 00 00 00 3B 00 00 FF FF FF FF FF FF             ....;........
 ```
+
+# Security Concerns
+
+TODO
+
+{backmatter}
+
+# Acknowledgements
+
+The author wishes to thank you.
+
+# Notices
+
+TODO
