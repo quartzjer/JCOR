@@ -1,6 +1,4 @@
 bin/jscn
 *.dSYM
 *.o
-json_constrained_notation.html
 json_constrained_notation.xml
-json_constrained_notation.txt

@@ -1,7 +1,7 @@
-% Title = "JSON Constrained Notation"
-% abbrev = "jscn"
+% Title = "JSON Constrained Notation (JSCN)"
+% abbrev = "JSCN"
 % category = "std"
-% docName = "json-constrained-notation"
+% docName = "draft"
 % area = ""
 % workgroup = ""
 % date = 2017-04-07T00:00:00Z
@@ -117,6 +117,7 @@ For example, when a JSON string value is encoded in JSCN as a CBOR base64 tag pl
 # Examples
 
 JSON (318 bytes) to JSCN (189 bytes) with no dictionary and whitespace preserved:
+
 ```json
 {
   "map": "value",
@@ -151,30 +152,30 @@ JSON (318 bytes) to JSCN (189 bytes) with no dictionary and whitespace preserved
 ```
 
 ``` ascii-art
-  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 	
-00000000: D8 2A A2 01 A6 63 6D 61 70 65 76 61 6C 75 65 65    X*".&cmapevaluee
-00000010: 61 72 72 61 79 84 63 6F 6E 65 63 74 77 6F 65 74    array.conectwoet
-00000020: 68 72 65 65 18 2A 64 62 6F 6F 6C F5 63 6E 65 67    hree.*dboolucneg
-00000030: 38 29 66 73 69 6D 70 6C 65 83 F4 F6 60 64 69 6E    8)fsimple.tv`din
-00000040: 74 73 8C 00 01 17 18 18 19 00 FF 19 01 00 19 FF    ts..............
-00000050: FF 1A 00 01 00 00 1B 00 00 00 00 FF FF FF FF 1B    ................
-00000060: 00 00 00 01 00 00 00 00 1B 00 01 00 00 00 00 00    ................
-00000070: 00 3B 00 00 FF FF FF FF FF FF 03 9F 01 01 26 08    .;............&.
-00000080: 01 28 01 02 06 02 06 02 08 02 02 01 02 01 27 05    .(............'.
-00000090: 01 26 04 01 29 01 02 06 02 05 02 02 01 02 01 27    .&..)..........'
-000000a0: 01 02 02 02 02 02 03 02 03 02 04 02 04 02 06 02    ................
-000000b0: 06 02 0B 02 0B 02 10 02 10 01 01 00 FF             .............
+  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+00000000: D8 2A A2 01 A6 63 6D 61 70 65 76 61 6C 75 65 65
+00000010: 61 72 72 61 79 84 63 6F 6E 65 63 74 77 6F 65 74
+00000020: 68 72 65 65 18 2A 64 62 6F 6F 6C F5 63 6E 65 67
+00000030: 38 29 66 73 69 6D 70 6C 65 83 F4 F6 60 64 69 6E
+00000040: 74 73 8C 00 01 17 18 18 19 00 FF 19 01 00 19 FF
+00000050: FF 1A 00 01 00 00 1B 00 00 00 00 FF FF FF FF 1B
+00000060: 00 00 00 01 00 00 00 00 1B 00 01 00 00 00 00 00
+00000070: 00 3B 00 00 FF FF FF FF FF FF 03 9F 01 01 26 08
+00000080: 01 28 01 02 06 02 06 02 08 02 02 01 02 01 27 05
+00000090: 01 26 04 01 29 01 02 06 02 05 02 02 01 02 01 27
+000000a0: 01 02 02 02 02 02 03 02 03 02 04 02 04 02 06 02
+000000b0: 06 02 0B 02 0B 02 10 02 10 01 01 00 FF
 ```
 
 With no whitespace and using a dictionary of `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]` (93 bytes):
 ``` ascii-art
-  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 	
-00000000: D8 2A A2 02 01 01 A6 41 01 41 02 41 03 84 41 04    X*"...&A.A.A..A.
-00000010: 41 05 41 06 18 2A 41 07 F5 41 08 38 29 41 09 83    A.A..*A.uA.8)A..
-00000020: F4 F6 60 41 0A 8C 00 01 17 18 18 19 00 FF 19 01    tv`A............
-00000030: 00 19 FF FF 1A 00 01 00 00 1B 00 00 00 00 FF FF    ................
-00000040: FF FF 1B 00 00 00 01 00 00 00 00 1B 00 01 00 00    ................
-00000050: 00 00 00 00 3B 00 00 FF FF FF FF FF FF             ....;........
+  Offset: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+00000000: D8 2A A2 02 01 01 A6 41 01 41 02 41 03 84 41 04
+00000010: 41 05 41 06 18 2A 41 07 F5 41 08 38 29 41 09 83
+00000020: F4 F6 60 41 0A 8C 00 01 17 18 18 19 00 FF 19 01
+00000030: 00 19 FF FF 1A 00 01 00 00 1B 00 00 00 00 FF FF
+00000040: FF FF 1B 00 00 00 01 00 00 00 00 1B 00 01 00 00
+00000050: 00 00 00 00 3B 00 00 FF FF FF FF FF FF
 ```
 
 # Security Concerns

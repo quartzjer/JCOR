@@ -42,7 +42,7 @@ spec: json_constrained_notation.html
 clean:
 	rm -f bin/jscn
 	rm -f $(DEPS)
-	rm -f json_constrained_notation.html json_constrained_notation.xml json_constrained_notation.txt
+	rm -f json_constrained_notation.xml
 
 req: 
 	@echo brew install go
