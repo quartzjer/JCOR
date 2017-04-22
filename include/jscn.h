@@ -4,6 +4,7 @@
 
 typedef struct jscn_s {
   struct jscn_s *dict; // optional pointer to dictionary
+  cb0r_s jscn; // full CBOR envelop
   cb0r_s map; // the JSCN wrapper map
   cb0r_s data; // the contained CBOR data
 } jscn_s, *jscn_t;
@@ -31,3 +32,4 @@ enum {
   JSCN_KEY_DICT,
   JSCN_KEY_WS
 };
+

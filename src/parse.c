@@ -198,6 +198,7 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
 static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
 {
   // validate any json first w/ full scan by looking for invalid key
+  if(!json || !len || (json[0] != '{' && json[0] != '[')) return 0;
   size_t err = 0;
   char *ws[2] = {NULL,"end"}; // notice if there's any whitespace also
   js0n("\0", 1, json, len, &err, ws);

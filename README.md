@@ -1,5 +1,12 @@
 # JSCN - JSON Constrained Notation
 
+# TODO
+
+* move to a subset definition
+* add a tag for a dictionary and another for whitespace
+* both followed by a variable array
+* data is always first item
+
 ## Scope
 
 A subset of CBOR that perfectly mirrors any JSON string into a highly condensed notation for constrained nodes and networks.

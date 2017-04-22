@@ -14,7 +14,7 @@ GOPATH?=/usr/local/gopath
 MMARK?=$(GOPATH)/bin/mmark
 XML2RFC?=xml2rfc
 
-all: jscn
+all: jscn jwt2json
 
 %.o : %.c $(HEADERS)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
@@ -24,6 +24,9 @@ bin/% : test/%.o $(DEPS)
 
 jscn: $(DEPS)
 	$(CC) $(CFLAGS) -o bin/jscn bin/jscn.o $(OBJECTS)
+
+jwt2json: $(DEPS)
+	$(CC) $(CFLAGS) -o bin/jwt2json bin/jwt2json.o $(OBJECTS)
 
 test: jscn
 	./bin/jscn test/test1.json test/test1.jscn
@@ -41,6 +44,7 @@ spec: json_constrained_notation.html
 
 clean:
 	rm -f bin/jscn
+	rm -f bin/jwt2json
 	rm -f $(DEPS)
 	rm -f json_constrained_notation.xml
 
