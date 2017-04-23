@@ -45,7 +45,7 @@ All JSCN transcoder software must operate directly on a UTF-8 JSON string whenev
 
 A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared dictionaries.  These dictionaries provide a mapping of common JSON string values to an integer that used instead in the resulting CBOR during re-coding.
 
-The CBOR resulting from a re-coding of JSON to JSCN may have slight differences based on the capabilities of the transcoder software, this specification does not currently provide for the JSCN byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical as well as the view any constrained device has of the data values will be uniform.
+This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines some API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has minor encoding differences.
 
 ## Requirements Notations and Conventions
 
@@ -53,14 +53,34 @@ The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL 
 
 ## Terminology
 
-This specification defines the following terms:
+This specification uses the following terms:
 
-- JSCN Tag
-  - CBOR tag id 42 for marking values as JSCN encoded, the tag is followed by a map with integer keys containing minimally a `1` key with the JSCN value, optional additional items in the map are metadata about it such as the dictionary (`2`) and whitespace hints (`3`).
-- Case Tag
-  - CBOR tag id 20 that is used to indicate the following value should be upper case when encoded as a string, this applies to hexadecimal tag 23 and exponent tag 4 values.
 - Dictionary
+  - A CBOR array of UTF-8 strings that are used to replace any references to them within any JSCN data, the references are always a byte string of length one where the byte value indicates the array offset into the dictionary
 - Whitespace Hints
+  - A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
+
+## CBOR Tag Registrations
+
+```
+Tag             20 (Upper Case Modifier)
+Data Item       multiple
+Semantics       indicates that the data item following contains values where the upper case is semantically important when interpreted in any UTF-8 string context
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+
+Tag             42 (JSCN encoded with dictionary)
+Data Item       array
+Semantics       first value is a JSCN encoded data item, optionally followed by either an integer dictionary id reference or one or more inline dictionary items
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+
+Tag             1764 (JSCN encoded whitespace hints)
+Data Item       array
+Semantics       first value is a JSCN encoded data item to be expanded with whitespace when stringified into JSON, followed by a sequence of integers describing the locations and types of whitespace to be added
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+```
 
 # CBOR Encoding
 
@@ -86,27 +106,27 @@ Strings are preserved as a UTF-8 string (type 3), they are always the bare escap
 
 All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 20/23).
 
-The resulting decoded byte string must be introspected if it begins with a JSON structure byte of '{' or '['.  It must also then be round-trip tested as a possible JSON object/array that can be encoded as an embedded JSCN value (this pattern is common in JOSE).
+The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).
 
 # Dictionaries
 
-* Support for custom dictionaries by using a CBOR byte string (type 2) as the lookup key, the value of which must be resolved to an above CBOR value that replaces the byte string
-* When condensing JSON any UTF-8 strings (keys or values) are first checked against the active dictionary for possible replacement
-* The replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the dictionary from 1-255, value 0 and byte lengths >1 are currently reserved
+* A CBOR tag of `42` indicates that the following array contains a JSCN-encoded data item as the first value of the array and an optional dictionary id or an inline dictionary definition.
 * Dictionaries are themselves identified with a unique string or integer ids, the strings must have a known mapping for apps using them and a registry will be created to assign integer ids to public well-known dictionaries
-* A dictionary is represented in JSCN as an array where the first value is the dictionary id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
+* A dictionary definition is itself encoded as a JSCN array where the first value is the dictionary id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
 * Dictionaries may be combined when the JSCN contains another dictionary id, any byte strings in the definition array are then replaced with the key from the given directory
+* Any JSON UTF-8 strings (keys or values) are first checked against the active dictionary (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the dictionary from 1-255, value 0 and byte lengths >1 are currently reserved
+* When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active dictionary to be used as the replacement for that byte string.
 
 # Whitespace Hints
 
-* The "whitespace" key in a JSCN tag 42 map is an optional CBOR array value of the non-semantic whitespace present in the original JSON UTF-8 string
+* A CBOR tag of `1764` is followed by an array that contains a JSCN data item followed by an array of whitespace hints to be used when the exact JSON string must be generated.
 * The array contains only integers that reference offsets of the locations of whitespace in the original JSON string and lookup references to what whitespace contents were there
 * Each offset integer is relative to the position of the previous offset such that all integers are of small values
 * Any negative integer offset is a reference to a single space character (0x20) at the offset of the positive value of that integer
 * All positive integer offsets are followed by another integer, positive values (0-23) reference a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat
 * When re-inflating the whitespace the array must be applied sequentially so that each new offset matches the original JSON string position
 
-(TODO embed whitespace lookup table)
+(TODO embed whitespace lookup table and examples)
 
 # Constrained API
 

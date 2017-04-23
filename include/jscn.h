@@ -9,11 +9,23 @@ typedef struct jscn_s {
   cb0r_s data; // the contained CBOR data
 } jscn_s, *jscn_t;
 
-// parses raw JSON into JSCN (jscn buffer must be 2*len)
-bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result);
+// parses raw JSON into CBOR
+bool jscn_parse(char *json, uint32_t len, jscn_t result);
+
+// replaces any string keys in dictionary, result is tag 42
+bool jscn_replace(jscn_t data, jscn_t dictionary, jscn_t result);
+
+// captures any non-semantic whitespace into hints, result is tag 1764 array
+bool jscn_whitespace(char *json, uint32_t len, jscn_t data, jscn_t result);
 
 // converts JSCN back into JSON (returns size required if json is NULL)
 uint32_t jscn_stringify(jscn_t jscn, char *json);
+
+// resolve any dictionary references back into strings
+bool jscn_lookup(jscn_t data, jscn_t dictionary, jscn_t result);
+
+// expands json string with non-structural whitespace based on hints array
+bool jscn_hints(char *json, jscn_t hints);
 
 // validates JSCN and loads data, fills result if successful
 bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result);
