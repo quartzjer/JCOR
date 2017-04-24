@@ -6,6 +6,7 @@
 * add a tag for a dictionary and another for whitespace
 * both followed by a variable array
 * data is always first item
+* references
 
 ## Scope
 

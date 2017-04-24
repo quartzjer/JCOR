@@ -6,6 +6,11 @@
 #include "base64.h"
 #include "base16.h"
 
+// shared with parse
+#define WS_MAXLEN 16
+extern const char *ws_table[24];
+extern const uint8_t ws_tablen[24];
+
 static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, jscn_t dict)
 {
   size_t outlen = 0;

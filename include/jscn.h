@@ -2,46 +2,41 @@
 #include <stdbool.h>
 #include "cb0r.h"
 
+// struct to manage working state of JSCN data
 typedef struct jscn_s {
-  struct jscn_s *dict; // optional pointer to dictionary
-  cb0r_s jscn; // full CBOR envelop
-  cb0r_s map; // the JSCN wrapper map
-  cb0r_s data; // the contained CBOR data
+  uint32_t quota; // total space available in buffer
+  cb0r_s data; // always the first non-tag'd data item
+  uint8_t buffer[]; // CBOR buffer space
 } jscn_s, *jscn_t;
 
-// parses raw JSON into CBOR
-bool jscn_parse(char *json, uint32_t len, jscn_t result);
+// NOTE: all methods that return pointers must be free'd by caller
 
-// replaces any string keys in dictionary, result is tag 42
-bool jscn_replace(jscn_t data, jscn_t dictionary, jscn_t result);
+///////// general methods
+//
+// contained data item (skips any JSCN tags) is filled into result
+bool jscn_getdata(jscn_t jscn, cb0r_t result);
 
-// captures any non-semantic whitespace into hints, result is tag 1764 array
-bool jscn_whitespace(char *json, uint32_t len, jscn_t data, jscn_t result);
+// returns exported raw ref-condensed CBOR
+cb0r_t jscn_export(jscn_t jscn, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
 
-// converts JSCN back into JSON (returns size required if json is NULL)
-uint32_t jscn_stringify(jscn_t jscn, char *json);
+///////// JSON -> JSCN methods
+//
+// recodes raw JSON into JSCN, includes additional buffer for optional refs/whitespace tags
+jscn_t jscn_json2(char *json, uint32_t len);
 
-// resolve any dictionary references back into strings
-bool jscn_lookup(jscn_t data, jscn_t dictionary, jscn_t result);
+// adds a tag 42 and optional refs id
+bool jscn_addrefs(jscn_t jscn, cb0r_t id);
 
-// expands json string with non-structural whitespace based on hints array
-bool jscn_hints(char *json, jscn_t hints);
+// captures any non-semantic whitespace into hints, only adds tag 1764 array if any found
+bool jscn_addws(jscn_t jscn, char *json, uint32_t len);
 
-// validates JSCN and loads data, fills result if successful
-bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result);
 
-// fills dictionary id (if any), id will be UTF-8 string or integer
-bool jscn_dictionary(jscn_t jscn, cb0r_t id);
+////////// JSCN -> JSON methods
+//
+// loads raw CBOR and validates as JSCN, expands all references
+jscn_t jscn_load(cb0r_t cbor, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
 
-// whitespace table (used by parse and stringify)
-static const char *ws_table[24] = { "\n", "\n  ", "\n    ", "\n      ", "\n        ", "\n          ", "\n            ", "\n              ", "\t", "\n\t", "\n\t\t", "\n\t\t\t", "\n\t\t\t\t", "\n\t\t\t\t\t", "\n\t\t\t\t\t\t", "\n\t\t\t\t\t\t\t", "\n\t\t\t\t\t\t\t\t", "\r", "\r\n", "\r\n  ", "\r\n    ", "\r\n\t", "\r\n\t\t", "\r\n\t\t\t" };
-static uint8_t ws_tablen[24] = { 1, 3, 5, 7, 9, 11, 13, 15, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 4, 6, 3, 4, 5 };
-#define WS_MAXLEN 16
+// converts JSCN back into null-terminated JSON, adds whitespace if hints found
+char *jscn_2json(jscn_t jscn);
 
-// named keys for JSCN map
-enum {
-  JSCN_KEY_DATA = 1,
-  JSCN_KEY_DICT,
-  JSCN_KEY_WS
-};
 
