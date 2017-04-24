@@ -255,3 +255,21 @@ bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
 
   return jscn_load(jscn, jscn_len, result);
 }
+
+// recodes raw JSON into JSCN, includes additional buffer for optional refs/whitespace tags
+jscn_t jscn_json2(char *json, uint32_t len)
+{
+  return NULL;
+}
+
+// adds a tag 42 and optional refs id
+bool jscn_addrefs(jscn_t jscn, cb0r_t id)
+{
+  return false;
+}
+
+// captures any non-semantic whitespace into hints, only adds tag 1764 array if any found
+bool jscn_addws(jscn_t jscn, char *json, uint32_t len)
+{
+  return false;
+}

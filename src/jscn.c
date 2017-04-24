@@ -4,29 +4,25 @@
 #include <assert.h>
 #include "jscn.h"
 
-// validates JSCN and loads data, fills result if successful
-bool jscn_load(uint8_t *jscn, uint32_t len, jscn_t result)
+// contained data item (skips any JSCN tags) is filled into result
+bool jscn_getdata(jscn_t jscn, cb0r_t result)
 {
-  assert(result);
-  if(!jscn || !len) return false;
+  return false;
+}
 
-  cb0r_s res = {0,};
-  cb0r(jscn, jscn + len, 0, &res);
-  if(res.type != CB0R_TAG || res.value != 42) {
-    printf("CBOR is not tagged as JSCN: %u/%llu\n", res.type, res.value);
-    return false;
-  }
+// returns exported raw ref-condensed CBOR
+cb0r_t jscn_export(jscn_t jscn, bool (*ref_lookup)(cb0r_t id, cb0r_t refs))
+{
+  return NULL;
+}
 
-  cb0r(res.start + res.header, res.end, 0, &(result->map));
-  if(result->map.type != CB0R_MAP || !result->map.count) {
-    printf("JSCN does not begin with a map: %u\n", result->map.type);
-    return false;
-  }
+// loads raw CBOR and validates as JSCN, expands all references
+jscn_t jscn_load(cb0r_t cbor, bool (*ref_lookup)(cb0r_t id, cb0r_t refs))
+{
+  assert(cbor);
+  if(cbor->type >= CB0R_ERR) return false;
 
-  if(!cb0r_find(&(result->map), CB0R_INT, JSCN_KEY_DATA, NULL, &(result->data))) {
-    printf("JSCN does not contain data");
-    return false;
-  }
+  // TODO
 
   return true;
 }

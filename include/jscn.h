@@ -19,6 +19,9 @@ bool jscn_getdata(jscn_t jscn, cb0r_t result);
 // returns exported raw ref-condensed CBOR
 cb0r_t jscn_export(jscn_t jscn, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
 
+// loads raw CBOR and validates as JSCN, expands all references
+jscn_t jscn_load(cb0r_t cbor, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
+
 ///////// JSON -> JSCN methods
 //
 // recodes raw JSON into JSCN, includes additional buffer for optional refs/whitespace tags
@@ -33,9 +36,6 @@ bool jscn_addws(jscn_t jscn, char *json, uint32_t len);
 
 ////////// JSCN -> JSON methods
 //
-// loads raw CBOR and validates as JSCN, expands all references
-jscn_t jscn_load(cb0r_t cbor, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
-
 // converts JSCN back into null-terminated JSON, adds whitespace if hints found
 char *jscn_2json(jscn_t jscn);
 

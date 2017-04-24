@@ -156,3 +156,9 @@ uint32_t jscn_stringify(jscn_t jscn, char *json)
 
   return outlen;
 }
+
+// converts JSCN back into null-terminated JSON, adds whitespace if hints found
+char *jscn_2json(jscn_t jscn)
+{
+  return NULL;
+}
