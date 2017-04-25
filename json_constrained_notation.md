@@ -31,7 +31,7 @@
 
 The adoption of JSON is widespread in all traditional networking and software environments, but there has been more limited use in embedded and constrained environments due to the always-minimized storage and network capacities inherent in low-cost and low-power devices.
 
-This specification addresses the challenges of using JSON with constrained devices by providing a set of simple mapping rules to CBOR that are able to retain the complete semantic value of the data such that the orginal JSON string can always be identically re-created.  This constrained notation is intended to be usable directly by devices as a native data type which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher level systems.
+This specification addresses the challenges of using JSON with constrained devices by providing a set of mapping rules to CBOR that are able to retain the complete semantic value of the data such that the orginal JSON string can always be identically re-created.  This constrained notation is intended to be usable directly by devices as a native data type which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher level systems.
 
 A driving goal of this specification has been to enable the direct use of all existing JOSE standards unmodified in a constrained environment and to enable the immediate adoption of OpenID Connect as an Identity Management standard for the IoT.
 
@@ -208,7 +208,17 @@ With no whitespace and using a references of `[1,"map","value","array","one","tw
 00000050: 00 00 00 00 3B 00 00 FF FF FF FF FF FF
 ```
 
-# Security Concerns
+# IANA Considerations
+
+The IANA is requested to assign the following tags from the "CBOR Tags" registry defined in RFC 7049 [@!RFC7049]:
+
+* Assign the tag "Constrained JSON" in the 1 to 23 value range (one byte long when encoded).
+
+* Assign the tag "Upper Case Modifier" in the 24 to 255 value range (two bytes long when encoded).
+
+The tags to be assigned are described in Section 1.3 of this document.
+
+# Security Considerations
 
 TODO
 
