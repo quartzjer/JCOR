@@ -77,25 +77,24 @@ int main(int argc, char **argv)
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
 
-  jscn_s dbuf = {0,};
-  jscn_t dict = NULL;
   if(file_dict) {
   // if(result->jscn.count > 1 && cb0r_find(&(result->jscn), CB0R_INT, JSCN_KEY_DICT, NULL, &res)) {
 
     size_t dlen = 0;
+    cb0r_s cbor = {0,};
+    jscn_t dict = NULL;
     uint8_t *dbin = load(file_dict,&dlen);
-    if(!dbin || dlen <= 0 || !jscn_load(dbin, dlen, &dbuf) || dbuf.data.type != CB0R_ARRAY) {
-      printf("dictionary file invalid: %s %u\n", file_dict, dbuf.data.type);
+    if(!dbin || dlen <= 0 || !cb0r(dbin, dbin+dlen, 0, &cbor) || !(dict = jscn_load(&cbor, NULL)) || dict->data.type != CB0R_ARRAY) {
+      printf("dictionary file invalid: %s %u\n", file_dict, dict->data.type);
       return -1;
     }
-    dict = &dbuf;
   }
 
   // just bulk buffer working space
   uint8_t *bout = malloc(4*lin);
   jscn_s jscn = {0,};
-  jscn.dict = dict;
 
+  /*
   if(strstr(file_in,".json"))
   {
     if(!jscn_parse((char *)bin, lin, bout, &jscn)) {
@@ -124,7 +123,7 @@ int main(int argc, char **argv)
   int ret = save(file_out,bout,lout);
   free(bin);
   free(bout);
-
   return ret;
+*/
 }
 

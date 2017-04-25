@@ -5,6 +5,7 @@
 // struct to manage working state of JSCN data
 typedef struct jscn_s {
   uint32_t quota; // total space available in buffer
+  uint32_t len; // amount used of buffer
   cb0r_s data; // always the first non-tag'd data item
   uint8_t buffer[]; // CBOR buffer space
 } jscn_s, *jscn_t;
