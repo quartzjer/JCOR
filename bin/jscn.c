@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    if(!jscn_parse((char *)bin, lin, bout, &jscn)) {
+    if(!jscn_parse2((char *)bin, lin, bout, &jscn)) {
       printf("JSON parsing failed: %s\n",file_in);
       return 3;
     }

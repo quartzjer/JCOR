@@ -27,7 +27,7 @@ static int32_t get_index(cb0r_t array, uint8_t *str, uint32_t len)
   return -1;
 }
 
-static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict);
+static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict, bool tag);
 
 static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
 {
@@ -61,7 +61,7 @@ static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
         state->out += cb0r_write(state->out, CB0R_TAG, 21);
 
         // check if the decoded is itself JSON
-        uint32_t blen2 = on2cn_wrap((char*)buff, blen, buff + blen, state->dict);
+        uint32_t blen2 = on2cn_wrap((char*)buff, blen, buff + blen, state->dict, false);
         if(blen2 && blen2 < blen){
           printf("recursed %u < %u: %.*s\n",blen2,blen,blen,(char*)buff);
           memmove(state->out, buff + blen, blen2);
@@ -90,7 +90,7 @@ static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
     }
 
     // check dictionary for UTF8 swap
-    int32_t index;
+    int32_t index = 0;
     if(state->dict && (index = get_index(&(state->dict->data), in, inlen)) && index > 0 && index < 256) {
       // cbor byte key to represent value
       state->out += cb0r_write(state->out, CB0R_BYTE, 1);
@@ -102,7 +102,7 @@ static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
       memcpy(state->out, in, inlen);
       state->out += inlen;
     }
-
+    printf("CHECK DICT %p %d\n",state->dict,index);
   }else if(memcmp(in,"false",inlen) == 0){
     state->out += cb0r_write(state->out, CB0R_SIMPLE, 20);
   }else if(memcmp(in,"true",inlen) == 0){
@@ -121,7 +121,7 @@ static void on2cn_part(state_t state, uint8_t *in, size_t inlen, bool iskey)
   }
 }
 
-static void ws2cn(state_t state, uint8_t *in, size_t inlen)
+static uint32_t ws2cn(state_t state, uint8_t *in, size_t inlen)
 {
   // get all whitespace pointers
   char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
@@ -131,11 +131,7 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
   js0n("\0", 1, (char *)in, inlen, &err, whitespace);
   whitespace[inlen] = NULL; // ensure terminated
 
-  // indefinite length array
-  state->out[0] = CB0R_ARRAY << 5;
-  state->out[0] |= 31;
-  state->out++;
-
+  uint32_t count = 0;
   // fill in array w/ integers
   uint32_t prev = 0;
   for(char **i = whitespace; *i;) {
@@ -153,18 +149,21 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
       if(wslen == 1 && ws[0] == ' ')
       {
         state->out += cb0r_write(state->out, CB0R_NEG, offset);
+        count++;
         prev++;
         break;
       }
 
       // then add offset
       state->out += cb0r_write(state->out, CB0R_INT, offset);
+      count++;
 
       // count any repeating/leading spaces
       uint32_t spaces = 0;
       for(uint32_t j=0;j<wslen;j++) if(ws[j] == ' ') spaces++; else break;
       if(spaces) {
         state->out += cb0r_write(state->out, CB0R_NEG, spaces);
+        count++;
         *start += spaces;
         prev += spaces;
         continue;
@@ -182,20 +181,19 @@ static void ws2cn(state_t state, uint8_t *in, size_t inlen)
 
       // save table id and advance
       state->out += cb0r_write(state->out, CB0R_INT, best);
+      count++;
       *start += ws_tablen[best];
       prev += ws_tablen[best];
 
     } while(*start < *end);
   }
 
-  // add break to end of indefinite length array
-  state->out[0] = 0xff;
-  state->out++;
 
   free(whitespace);
+  return count;
 }
 
-static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
+static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict, bool tag)
 {
   // validate any json first w/ full scan by looking for invalid key
   size_t err = 0;
@@ -203,33 +201,44 @@ static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
   js0n("\0", 1, json, len, &err, ws);
   if(err) return 0;
 
-  // first make the JSCN header map
   uint8_t *at = out;
-  at += cb0r_write(at, CB0R_TAG, 42);
-  uint8_t items = 1;
-  if(dict) items++;
-  if(ws[0]) items++;
-  at += cb0r_write(at, CB0R_MAP, items);
-
-  if(dict) {
-    at += cb0r_write(at, CB0R_INT, JSCN_KEY_DICT);
-    cb0r_s res = {0,};
-    if(!cb0r_get(&(dict->data), 0, &res)) return 0;
-    at += cb0r_write(at, CB0R_INT, res.value);
-    printf("using dictionary %llu\n",res.value);
-  }
 
   // generate into value
-  at += cb0r_write(at, CB0R_INT, JSCN_KEY_DATA);
-  state_s state = {0,};
+  state_s state = {
+      0,
+  };
+
+  // add whitespace tag
+  if (ws[0])
+  {
+    // get count first
+    state.out = out;
+    uint32_t count = ws2cn(&state, (uint8_t *)json, len);
+    at += cb0r_write(at, CB0R_TAG, 1764);
+    at += cb0r_write(at, CB0R_ARRAY, count+1);
+  }
+
+  if(tag) {
+    at += cb0r_write(at, CB0R_TAG, 20);
+    at += cb0r_write(at, CB0R_ARRAY, 2);
+  }
+
   state.start = at;
   state.out = at;
   state.dict = dict;
   on2cn_part(&state, (uint8_t *)json, len, false);
 
-  // add any whitespace
+  if(tag) {
+    cb0r_s res = {
+        0,
+    };
+    if (dict)
+      cb0r_get(&(dict->data), 0, &res);
+    state.out += cb0r_write(state.out, CB0R_INT, res.value);
+  }
+
+  // fill rest of whitespace array
   if(ws[0]) {
-    state.out += cb0r_write(state.out, CB0R_INT, JSCN_KEY_WS);
     ws2cn(&state, (uint8_t *)json, len);
   }
 
@@ -237,14 +246,28 @@ static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
 }
 
 // parses raw JSON into JSCN (jscn buffer must be 2*len)
-bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
+bool jscn_parse2(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
 {
   assert(jscn);
   assert(result);
   if(!json || !len) return false;
 
-  uint32_t jscn_len = on2cn_wrap(json, len, jscn, result->dict);
+  uint32_t jscn_len = on2cn_wrap(json, len, jscn, result->dict, result->dict ? true : false);
   if(!jscn_len) return false;
+  cb0r(jscn, jscn+jscn_len, 0, &(result->map));
+  return true;
+}
+
+bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
+{
+  assert(jscn);
+  assert(result);
+  if (!json || !len)
+    return false;
+
+  uint32_t jscn_len = on2cn_wrap(json, len, jscn, result->dict, result->dict ? true : false);
+  if (!jscn_len)
+    return false;
 
   return jscn_load(jscn, jscn_len, result);
 }
