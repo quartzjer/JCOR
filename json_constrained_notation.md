@@ -65,21 +65,29 @@ This specification uses the following terms:
 ## CBOR Tag Registrations
 
 ```
-Tag             20 (Upper Case Modifier)
+Tag             20 (Constrained JSON)
+Data Item       array
+Semantics       First value in the array is always an embedded JSON data
+                item encoded using JSCN, optionally followed by either
+                an integer identifying embedded references or one or
+                more inline reference strings.
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+
+Tag             31 (Upper Case Modifier)
 Data Item       multiple
-Semantics       indicates that the data item following contains values where the upper case is semantically important when interpreted in any UTF-8 string context
+Semantics       Indicates that the data item following contains values
+                where the upper case is semantically important when 
+                interpreted in any UTF-8 string context.
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
-Tag             42 (JSCN encoded with references)
+Tag             1764 (Whitespace Hints)
 Data Item       array
-Semantics       first value is a JSCN encoded data item, optionally followed by either an integer references id or one or more inline reference strings
-Reference       http://quartzjer.github.io/JSCN
-Contact         Jeremie Miller <jeremie.miller@gmail.com>
-
-Tag             1764 (JSCN encoded whitespace hints)
-Data Item       array
-Semantics       first value is a JSCN encoded data item to be expanded with whitespace when stringified into JSON, followed by a sequence of integers describing the locations and types of whitespace to be added
+Semantics       First value is any data item to be expanded with 
+                whitespace when stringified into a JSON context, 
+                followed by a sequence of integers describing the 
+                locations and types of whitespace to be added.
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 ```
@@ -96,7 +104,7 @@ JSON `true`, `false`, and `null` are serialized to their CBOR type 7 simple valu
 
 ## Numbers 
 
-Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the contained `e` symbol is upper-case in JSON the case tag (20) must also be used.
+Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the contained `e` symbol is upper-case in JSON the case tag (31) must also be used.
 
 JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5).
 
@@ -106,13 +114,13 @@ Strings are preserved as a UTF-8 string (type 3), they are always the bare escap
 
 ### Base64 / Base16 Encoded
 
-All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 20/23).
+All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23/31).
 
 The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).
 
 # References
 
-* A CBOR tag of `42` indicates that the following array contains a JSCN-encoded data item as the first value of the array and an optional references id or inline reference strings.
+* A CBOR tag of `20` indicates that the following array contains a JSCN-encoded data item as the first value of the array and an optional references id or inline reference strings.
 * References are themselves identified with a unique string or integer ids, the strings must have a known mapping for apps using them and a registry will be created to assign integer ids to public well-known dictionaries
 * A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
 * References may be combined when its JSCN definition also contains another references id, any byte strings in the definition array are then replaced with the key from the given references
