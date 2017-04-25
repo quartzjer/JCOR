@@ -348,8 +348,45 @@ JWT (149 bytes) `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIi
 {"protected":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9","payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9","signature":"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"}
 ```
 
-Using references of `` ():
+Using references of `[1,"payload","signature","protected","alg","HS256","sub","name","admin"]` (80):
 ``` ascii-art
+D4                                      # tag(20)
+   82                                   # array(2)
+      A3                                # map(3)
+         41                             # bytes(1)
+            03                          # "\x03"
+         D5                             # tag(21)
+            A2                          # map(2)
+               41                       # bytes(1)
+                  04                    # "\x04"
+               41                       # bytes(1)
+                  05                    # "\x05"
+               41                       # bytes(1)
+                  06                    # "\x06"
+               41                       # bytes(1)
+                  07                    # "\a"
+         41                             # bytes(1)
+            01                          # "\x01"
+         D5                             # tag(21)
+            A3                          # map(3)
+               41                       # bytes(1)
+                  08                    # "\b"
+               D7                       # tag(23)
+                  45                    # bytes(5)
+                     1234567890         # "\x124Vx\x90"
+               41                       # bytes(1)
+                  09                    # "\t"
+               68                       # text(8)
+                  4A6F686E20446F65      # "John Doe"
+               41                       # bytes(1)
+                  0A                    # "\n"
+               F5                       # primitive(21)
+         41                             # bytes(1)
+            02                          # "\x02"
+         D5                             # tag(21)
+            58 20                       # bytes(32)
+               4C9540F793AB33B13670169BDF444C1EB1C37047F18E861981E14E34587B1E04 # "L\x95@\xF7\x93\xAB3\xB16p\x16\x9B\xDFDL\x1E\xB1\xC3pG\xF1\x8E\x86\x19\x81\xE1N4X{\x1E\x04"
+      01                                # unsigned(1)
 ```
 
 # IANA Considerations
