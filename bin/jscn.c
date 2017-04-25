@@ -73,13 +73,11 @@ int main(int argc, char **argv)
   char *file_dict = (argc == 4)?argv[3]:NULL;
 
 
-  size_t lin = 0, lout = 0;
+  size_t lin = 0;
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
 
   if(file_dict) {
-  // if(result->jscn.count > 1 && cb0r_find(&(result->jscn), CB0R_INT, JSCN_KEY_DICT, NULL, &res)) {
-
     size_t dlen = 0;
     cb0r_s cbor = {0,};
     jscn_t dict = NULL;
@@ -90,23 +88,20 @@ int main(int argc, char **argv)
     }
   }
 
-  // just bulk buffer working space
-  uint8_t *bout = malloc(4*lin);
-  jscn_s jscn = {0,};
+  jscn_t jscn = NULL;
+  cb0r_t cbor = NULL;
+  int ret = 0;
 
-  /*
   if(strstr(file_in,".json"))
   {
-    if(!jscn_parse((char *)bin, lin, bout, &jscn)) {
-      printf("JSON parsing failed: %s\n",file_in);
-      return 3;
-    }
-    lout = jscn.map.end - bout;
-    printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
+    if(!(jscn = jscn_json2((char *)bin, lin))) ret = printf("JSON parsing failed: %s\n",file_in);
+    else if(!(cbor = jscn_export(jscn, NULL))) ret = printf("JSCN export failed: %s\n", file_in);
+    else printf("serialized json[%ld] to cbor[%ld]\n", lin, cbor->end - cbor->start);
   }else if(strstr(file_in,".jwt")){
 //    lout = jwt2cn(bin,lin,bout,dict);
-    printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
+//    printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
   }else if(strstr(file_in,".jscn")){
+    /*
     if(!jscn_load(bin,lin,&jscn)) {
       printf("jscn file failed to load: %s\n",file_in);
       return 4;
@@ -115,15 +110,15 @@ int main(int argc, char **argv)
     jscn.dict = dict;
     lout = jscn_stringify(&jscn,(char*)bout);
     printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
+    */
   }else{
-    printf("file must be .json or .jscn: %s\n",file_in);
-    return 1;
+    ret = printf("file must be .json or .jscn: %s\n",file_in);
   }
 
-  int ret = save(file_out,bout,lout);
   free(bin);
-  free(bout);
+
+  if(!ret && cbor) ret = save(file_out, cbor->start, cbor->end - cbor->start);
+
   return ret;
-*/
 }
 
