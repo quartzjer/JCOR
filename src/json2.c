@@ -243,23 +243,20 @@ static uint32_t on2cn_wrap(char *json, uint32_t len, uint8_t *out, jscn_t dict)
   return state.out - out;
 }
 
-// parses raw JSON into JSCN (jscn buffer must be 2*len)
-bool jscn_parse(char *json, uint32_t len, uint8_t *jscn, jscn_t result)
-{
-  assert(jscn);
-  assert(result);
-  if(!json || !len) return false;
-
-  uint32_t jscn_len = on2cn_wrap(json, len, jscn, result->dict);
-  if(!jscn_len) return false;
-
-  return jscn_load(jscn, jscn_len, result);
-}
-
 // recodes raw JSON into JSCN, includes additional buffer for optional refs/whitespace tags
 jscn_t jscn_json2(char *json, uint32_t len)
 {
-  return NULL;
+  if(!json || !len) return NULL;
+
+  // more than enough space for now
+  jscn_t jscn = malloc(sizeof(jscn_s) + (len * 1.4));
+  memset(jscn, 0, sizeof(jscn_s) + (len * 1.4));
+  jscn->quota = (len * 1.4) - sizeof(jscn_s);
+
+  uint32_t jscn_len = on2cn_wrap(json, len, jscn->buffer);
+  if(!jscn_len) return false;
+
+  return jscn;
 }
 
 // adds a tag 42 and optional refs id

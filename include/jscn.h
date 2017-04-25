@@ -13,8 +13,8 @@ typedef struct jscn_s {
 
 ///////// general methods
 //
-// contained data item (skips any JSCN tags) is filled into result
-bool jscn_getdata(jscn_t jscn, cb0r_t result);
+// returns the contained data item (skips any JSCN tags)
+cb0r_t jscn_getdata(jscn_t jscn);
 
 // returns exported raw ref-condensed CBOR
 cb0r_t jscn_export(jscn_t jscn, bool (*ref_lookup)(cb0r_t id, cb0r_t refs));
