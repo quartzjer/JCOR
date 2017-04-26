@@ -33,19 +33,19 @@ The adoption of JSON is widespread in all traditional networking and software en
 
 This specification addresses the challenges of using JSON with constrained devices by providing a set of mapping rules to CBOR that are able to retain the complete semantic value of the data such that the orginal JSON string can always be identically re-created.  This constrained notation is intended to be usable directly by devices as a native data type which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher level systems.
 
-A driving goal of this specification has been to enable the direct use of all existing JOSE standards unmodified in a constrained environment and to enable the immediate adoption of OpenID Connect as an Identity Management standard for the IoT.
+A driving goal of this specification has been to enable the direct use of all existing JOSE standards unmodified in a constrained environment and to enable the immediate adoption of OpenID Connect as an identity management solution for the Internet of Things.
 
 {mainmatter}
 
 # Introduction
 
-JSCN is a subset of CBOR, the rules for re-coding the JSON structures all map directly to their CBOR parallels whenever possible.  Only when JSON string values can be introspected to contain data that has a more compact CBOR type (such as base64url and hexadecimal encoding) is additional mapping performed when re-coding the string value.
+Constrained JSON (JSCN) is a set of rules for re-coding the JSON structures by mapping them directly to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
 
-All JSCN transcoder software must operate directly on a UTF-8 JSON string whenever round-trip compatibly to and from JSON is required including any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context.
+All transcoding software must operate directly on a UTF-8 JSON string whenever complete round-trip compatibly to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
 
-A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared dictionaries.  These dictionaries provide a mapping of common JSON string values to an integer that used instead in the resulting CBOR during re-coding.
+A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 
-This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines some API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has minor encoding differences.
+This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines basic API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has encoding differences.
 
 ## Requirements Notations and Conventions
 
@@ -58,39 +58,9 @@ This specification uses the following terms:
 - Reference
   - Used within JSCN data to refer to well-known UTF-8 strings by using a CBOR byte string of length one, where the byte value is the reference lookup id.
 - References
-  - A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the reference id is the array offset to the replacement string.
+  - A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the reference id is the array offset to the replacement string, and the first position in the array identifies that list of references.
 - Whitespace Hints
   - A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
-
-## CBOR Tag Registrations
-
-```
-Tag             20 (Constrained JSON)
-Data Item       array
-Semantics       First value in the array is always an embedded JSON data
-                item encoded using JSCN, optionally followed by either
-                an integer identifying embedded references or one or
-                more inline reference strings.
-Reference       http://quartzjer.github.io/JSCN
-Contact         Jeremie Miller <jeremie.miller@gmail.com>
-
-Tag             31 (Upper Case Modifier)
-Data Item       multiple
-Semantics       Indicates that the data item following contains values
-                where the upper case is semantically important when 
-                interpreted in any UTF-8 string context.
-Reference       http://quartzjer.github.io/JSCN
-Contact         Jeremie Miller <jeremie.miller@gmail.com>
-
-Tag             1764 (Whitespace Hints)
-Data Item       array
-Semantics       First value is any data item to be expanded with 
-                whitespace when stringified into a JSON context, 
-                followed by a sequence of integers describing the 
-                locations and types of whitespace to be added.
-Reference       http://quartzjer.github.io/JSCN
-Contact         Jeremie Miller <jeremie.miller@gmail.com>
-```
 
 # CBOR Encoding
 
@@ -120,21 +90,20 @@ The resulting decoded byte string must be introspected to see if it begins with 
 
 # References
 
-* A CBOR tag of `20` indicates that the following array contains a JSCN-encoded data item as the first value of the array and an optional references id or inline reference strings.
-* References are themselves identified with a unique string or integer ids, the strings must have a known mapping for apps using them and a registry will be created to assign integer ids to public well-known dictionaries
-* A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with
-* References may be combined when its JSCN definition also contains another references id, any byte strings in the definition array are then replaced with the key from the given references
-* Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths >1 are currently reserved
+* The Constrained JSON tag is followed by an array who's second item identifies the references used in the data, it is either the references id or an array that defines an inline set of references.
+* References are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known dictionaries.
+* A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with.
+* References may be combined when its JSCN definition also contains another references id, any byte strings in the definition array are then replaced with the key from the given references.
+* Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths >1 are currently reserved.
 * When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active references to be used as the replacement for that byte string.
 
 # Whitespace Hints
 
-* A CBOR tag of `1764` is followed by an array that contains a JSCN data item followed by an array of whitespace hints to be used when the exact JSON string must be generated.
-* The array contains only integers that indicate offsets of the locations of whitespace in the original JSON string and lookup keys to what whitespace contents were there
-* Each offset integer is relative to the position of the previous offset such that all integers are of small values
-* Any negative integer offset indicates a single space character (0x20) at the offset of the positive value of that integer
-* All positive integer offsets are followed by another integer, positive values (0-23) indicate a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat
-* When adding back any whitespace to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position
+* Whitespace hints are an array that contains only integers which indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.
+* Each offset integer is relative to the position of the previous offset such that all integers are of small values.
+* Any negative integer offset indicates a single space character (0x20) at the offset of the positive value of that integer.
+* All positive integer offsets are followed by another integer, positive values (0-23) indicate a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat.
+* When adding back any whitespace to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position.
 
 (TODO embed whitespace lookup table and examples)
 
@@ -142,7 +111,7 @@ The resulting decoded byte string must be introspected to see if it begins with 
 
 When the JSCN is being used directly by a software library all access to the contained data values must have both a native type and JSON-string API available so that a constrained application can choose either regardless of how the CBOR types represent the data.
 
-For example, when a JSON string value is encoded in JSCN as a CBOR base64 tag plus byte string, the application must be able to access either the original string value or the CBOR binary byte string as needed by context.
+For example, when a JSON string value is encoded in JSCN as a CBOR base64url tag plus byte string, the application must be able to access either the original base64url string value or the CBOR binary byte string as needed by context, but should not alter behavior based on which way the value is encoded in CBOR.
 
 # Examples
 
@@ -397,7 +366,29 @@ The IANA is requested to assign the following tags from the "CBOR Tags" registry
 
 * Assign the tag "Upper Case Modifier" in the 24 to 255 value range (two bytes long when encoded).
 
-The tags to be assigned are described in Section 1.3 of this document.
+The tags to be assigned are described below.
+
+## CBOR Tag Registrations
+
+```
+Tag             20 (Constrained JSON)
+Data Item       array
+Semantics       First value in the array is always a constrained JSON data
+                item encoded using JSCN, optionally followed by an integer
+                or array identifying any embedded references, and then an
+                optional array of whitespace hints if any.
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+
+Tag             31 (Upper Case Modifier)
+Data Item       multiple
+Semantics       Indicates that the data item following contains values
+                where the upper case is semantically important when 
+                interpreted in any UTF-8 string context.
+Reference       http://quartzjer.github.io/JSCN
+Contact         Jeremie Miller <jeremie.miller@gmail.com>
+```
+
 
 # Security Considerations
 
