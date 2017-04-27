@@ -3,7 +3,7 @@
 
 
                                                                J. Miller
-                                                           April 7, 2017
+                                                          April 20, 2017
 
 
                     JSON Constrained Notation (JSCN)
@@ -53,7 +53,7 @@ Table of Contents
 
 
 
-Miller                   Expires October 9, 2017                [Page 1]
+Miller                  Expires October 22, 2017                [Page 1]
 
                                   JSCN                        April 2017
 
@@ -109,7 +109,7 @@ Miller                   Expires October 9, 2017                [Page 1]
 
 
 
-Miller                   Expires October 9, 2017                [Page 2]
+Miller                  Expires October 22, 2017                [Page 2]
 
                                   JSCN                        April 2017
 
@@ -165,7 +165,7 @@ Miller                   Expires October 9, 2017                [Page 2]
 
 
 
-Miller                   Expires October 9, 2017                [Page 3]
+Miller                  Expires October 22, 2017                [Page 3]
 
                                   JSCN                        April 2017
 
@@ -221,7 +221,7 @@ Miller                   Expires October 9, 2017                [Page 3]
 
 
 
-Miller                   Expires October 9, 2017                [Page 4]
+Miller                  Expires October 22, 2017                [Page 4]
 
                                   JSCN                        April 2017
 
@@ -277,7 +277,7 @@ Miller                   Expires October 9, 2017                [Page 4]
 
 
 
-Miller                   Expires October 9, 2017                [Page 5]
+Miller                  Expires October 22, 2017                [Page 5]
 
                                   JSCN                        April 2017
 
@@ -333,7 +333,7 @@ Miller                   Expires October 9, 2017                [Page 5]
 
 
 
-Miller                   Expires October 9, 2017                [Page 6]
+Miller                  Expires October 22, 2017                [Page 6]
 
                                   JSCN                        April 2017
 
@@ -389,7 +389,7 @@ Miller                   Expires October 9, 2017                [Page 6]
 
 
 
-Miller                   Expires October 9, 2017                [Page 7]
+Miller                  Expires October 22, 2017                [Page 7]
 
                                   JSCN                        April 2017
 
@@ -445,7 +445,7 @@ Miller                   Expires October 9, 2017                [Page 7]
 
 
 
-Miller                   Expires October 9, 2017                [Page 8]
+Miller                  Expires October 22, 2017                [Page 8]
 
                                   JSCN                        April 2017
 
@@ -501,7 +501,7 @@ Miller                   Expires October 9, 2017                [Page 8]
 
 
 
-Miller                   Expires October 9, 2017                [Page 9]
+Miller                  Expires October 22, 2017                [Page 9]
 
                                   JSCN                        April 2017
 
@@ -557,7 +557,7 @@ Miller                   Expires October 9, 2017                [Page 9]
 
 
 
-Miller                   Expires October 9, 2017               [Page 10]
+Miller                  Expires October 22, 2017               [Page 10]
 
                                   JSCN                        April 2017
 
@@ -613,7 +613,7 @@ D4                                      # tag(20)
 
 
 
-Miller                   Expires October 9, 2017               [Page 11]
+Miller                  Expires October 22, 2017               [Page 11]
 
                                   JSCN                        April 2017
 
@@ -669,7 +669,7 @@ Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
 
 
-Miller                   Expires October 9, 2017               [Page 12]
+Miller                  Expires October 22, 2017               [Page 12]
 
                                   JSCN                        April 2017
 
@@ -725,4 +725,4 @@ Author's Address
 
 
 
-Miller                   Expires October 9, 2017               [Page 13]
+Miller                  Expires October 22, 2017               [Page 13]
