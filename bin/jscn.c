@@ -63,6 +63,7 @@ int save(char *file, uint8_t *bin, size_t len)
 
 int main(int argc, char **argv)
 {
+  // TODO use real arg parser/syntax
   if(argc < 3)
   {
     printf("Usage (args may be swapped): jscn file.json file.jscn\n");
@@ -70,8 +71,9 @@ int main(int argc, char **argv)
   }
   char *file_in = argv[1];
   char *file_out = argv[2];
-  char *file_refs = (argc == 4)?argv[3]:NULL;
+  char *file_refs = (argc >= 4)?argv[3]:NULL;
   bool whitespace = (argc == 4)?false:true;
+  if(argc == 5) whitespace = true; // override
 
 
   size_t lin = 0;
