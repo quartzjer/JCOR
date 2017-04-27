@@ -14,10 +14,10 @@ typedef struct jscn_s {
   cb0r_s ws; // whitespace array (if any)
 } jscn_s, *jscn_t;
 
-// recodes raw JSON into JSCN (caller must free returned pointer)
+// recodes raw JSON into JSCN (caller must free ret and ret->start pointers)
 jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace);
 
-// converts JSCN back into null-terminated JSON, adds back whitespace if requested
+// converts JSCN back into new null-terminated JSON, adds back whitespace if requested
 char *jscn_2json(jscn_t jscn, cb0r_t refs, bool whitespace);
 
 // loads raw CBOR and validates as JSCN, caller must free result
