@@ -383,7 +383,7 @@
 <link href="#rfc.section.2.3" rel="Chapter" title="2.3 Numbers"/>
 <link href="#rfc.section.2.4" rel="Chapter" title="2.4 Strings"/>
 <link href="#rfc.section.2.4.1" rel="Chapter" title="2.4.1 Base64 / Base16 Encoded"/>
-<link href="#rfc.section.3" rel="Chapter" title="3 References"/>
+<link href="#rfc.section.3" rel="Chapter" title="3 Reference Sets"/>
 <link href="#rfc.section.4" rel="Chapter" title="4 Whitespace Hints"/>
 <link href="#rfc.section.5" rel="Chapter" title="5 Constrained API"/>
 <link href="#rfc.section.6" rel="Chapter" title="6 Examples"/>
@@ -449,7 +449,7 @@
 <li>2.3.   <a href="#rfc.section.2.3">Numbers</a></li>
 <li>2.4.   <a href="#rfc.section.2.4">Strings</a></li>
 <ul><li>2.4.1.   <a href="#rfc.section.2.4.1">Base64 / Base16 Encoded</a></li>
-</ul></ul><li>3.   <a href="#rfc.section.3">References</a></li>
+</ul></ul><li>3.   <a href="#rfc.section.3">Reference Sets</a></li>
 <li>4.   <a href="#rfc.section.4">Whitespace Hints</a></li>
 <li>5.   <a href="#rfc.section.5">Constrained API</a></li>
 <li>6.   <a href="#rfc.section.6">Examples</a></li>
@@ -477,7 +477,7 @@
 
 <ul>
   <li>Reference <ul><li>Used within JSCN data to refer to well-known UTF-8 strings by using a CBOR byte string of length one, where the byte value is the reference lookup id.</li></ul></li>
-  <li>References <ul><li>A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the reference id is the array offset to the replacement string, and the first position in the array identifies that list of references.</li></ul></li>
+  <li>Reference Set <ul><li>A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the Reference id is the array offset to the replacement string, and the first position in the array identifies that Reference Set.</li></ul></li>
   <li>Whitespace Hints <ul><li>A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (, <samp>\n</samp>, <samp>\r</samp>, and <samp>\t</samp>) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.</li></ul></li>
 </ul>
 
@@ -495,14 +495,14 @@
 <h1 id="rfc.section.2.4.1"><a href="#rfc.section.2.4.1">2.4.1.</a> <a href="#base64--base16-encoded" id="base64--base16-encoded">Base64 / Base16 Encoded</a></h1>
 <p id="rfc.section.2.4.1.p.1">All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23/31).  </p>
 <p id="rfc.section.2.4.1.p.2">The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).  </p>
-<h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#references" id="references">References</a></h1>
+<h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#reference-sets" id="reference-sets">Reference Sets</a></h1>
 <p/>
 
 <ul>
-  <li>The Constrained JSON tag is followed by an array who's second item identifies the references used in the data, it is either the references id or an array that defines an inline set of references.</li>
-  <li>References are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known dictionaries.</li>
+  <li>The Constrained JSON tag is followed by an array who's second item identifies the Reference Set used in the data, it is either the id value or an array that defines an inline Reference Set.</li>
+  <li>Reference Sets are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known reference sets.</li>
   <li>A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with.</li>
-  <li>References may be combined when its JSCN definition also contains another references id, any byte strings in the definition array are then replaced with the key from the given references.</li>
+  <li>Reference Sets may be combined when its JSCN definition also contains another Reference Set id, any byte strings in the definition array are then replaced with the key from the given references.</li>
   <li>Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths &gt;1 are currently reserved.</li>
   <li>When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active references to be used as the replacement for that byte string.</li>
 </ul>

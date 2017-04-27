@@ -42,7 +42,7 @@ Table of Contents
      2.3.  Numbers . . . . . . . . . . . . . . . . . . . . . . . . .   3
      2.4.  Strings . . . . . . . . . . . . . . . . . . . . . . . . .   3
        2.4.1.  Base64 / Base16 Encoded . . . . . . . . . . . . . . .   4
-   3.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   3.  Reference Sets  . . . . . . . . . . . . . . . . . . . . . . .   4
    4.  Whitespace Hints  . . . . . . . . . . . . . . . . . . . . . .   5
    5.  Constrained API . . . . . . . . . . . . . . . . . . . . . . .   5
    6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   5
@@ -118,12 +118,12 @@ Miller                   Expires October 9, 2017                [Page 2]
          using a CBOR byte string of length one, where the byte value is
          the reference lookup id.
 
-   o  References
+   o  Reference Set
 
       *  A CBOR array of UTF-8 strings that are used to replace any
-         reference within any JSCN data, the reference id is the array
+         reference within any JSCN data, the Reference id is the array
          offset to the replacement string, and the first position in the
-         array identifies that list of references.
+         array identifies that Reference Set.
 
    o  Whitespace Hints
 
@@ -187,26 +187,26 @@ Miller                   Expires October 9, 2017                [Page 3]
    efficiently into a CBOR data item instead of a byte string (this
    pattern is common in JOSE).
 
-3.  References
+3.  Reference Sets
 
    o  The Constrained JSON tag is followed by an array who's second item
-      identifies the references used in the data, it is either the
-      references id or an array that defines an inline set of
-      references.
+      identifies the Reference Set used in the data, it is either the id
+      value or an array that defines an inline Reference Set.
 
-   o  References are themselves identified with unique integer ids that
-      must have a known mapping for apps using them, a registry will be
-      created to assign the integer ids to public well-known
-      dictionaries.
+   o  Reference Sets are themselves identified with unique integer ids
+      that must have a known mapping for apps using them, a registry
+      will be created to assign the integer ids to public well-known
+      reference sets.
 
    o  A references definition is itself encoded as a JSCN array where
       the first value is the references id followed by all of the UTF-8
       string keys, their position in the array is the byte value they
       are replaced with.
 
-   o  References may be combined when its JSCN definition also contains
-      another references id, any byte strings in the definition array
-      are then replaced with the key from the given references.
+   o  Reference Sets may be combined when its JSCN definition also
+      contains another Reference Set id, any byte strings in the
+      definition array are then replaced with the key from the given
+      references.
 
    o  Any JSON UTF-8 strings (keys or values) are first checked against
       all active references (if any) for possible replacement, any
