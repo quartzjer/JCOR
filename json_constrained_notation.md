@@ -57,8 +57,8 @@ This specification uses the following terms:
 
 - Reference
   - Used within JSCN data to refer to well-known UTF-8 strings by using a CBOR byte string of length one, where the byte value is the reference lookup id.
-- References
-  - A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the reference id is the array offset to the replacement string, and the first position in the array identifies that list of references.
+- Reference Set
+  - A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the Reference id is the array offset to the replacement string, and the first position in the array identifies that Reference Set.
 - Whitespace Hints
   - A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
 
@@ -88,12 +88,12 @@ All JSON strings must also be round-trip tested for possible encodings (base64ur
 
 The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).
 
-# References
+# Reference Sets
 
-* The Constrained JSON tag is followed by an array who's second item identifies the references used in the data, it is either the references id or an array that defines an inline set of references.
-* References are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known dictionaries.
+* The Constrained JSON tag is followed by an array who's second item identifies the Reference Set used in the data, it is either the id value or an array that defines an inline Reference Set.
+* Reference Sets are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known reference sets.
 * A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with.
-* References may be combined when its JSCN definition also contains another references id, any byte strings in the definition array are then replaced with the key from the given references.
+* Reference Sets may be combined when its JSCN definition also contains another Reference Set id, any byte strings in the definition array are then replaced with the key from the given references.
 * Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths >1 are currently reserved.
 * When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active references to be used as the replacement for that byte string.
 

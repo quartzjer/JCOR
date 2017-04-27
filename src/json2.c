@@ -130,7 +130,7 @@ static uint8_t *on2cn_part(uint8_t *out, uint8_t *in, size_t inlen, bool iskey, 
   return out;
 }
 
-static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen)
+static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen, uint32_t *count)
 {
   // get all whitespace pointers
   char **whitespace = malloc((inlen + 1) * sizeof(char *)); // temporary array of char*'s
@@ -140,13 +140,9 @@ static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen)
   js0n("\0", 1, (char *)in, inlen, &err, whitespace);
   whitespace[inlen] = NULL; // ensure terminated
 
-  // indefinite length array
-  out[0] = CB0R_ARRAY << 5;
-  out[0] |= 31;
-  out++;
-
   // fill in array w/ integers
   uint32_t prev = 0;
+  *count = 0;
   for(char **i = whitespace; *i;) {
     // start/end are _inclusive_
     char **start = i, **end = i;
@@ -163,11 +159,13 @@ static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen)
       if(wslen == 1 && ws[0] == ' ') {
         out += cb0r_write(out, CB0R_NEG, offset);
         prev++;
+        count[0]++;
         break;
       }
 
       // then add offset
       out += cb0r_write(out, CB0R_INT, offset);
+      count[0]++;
 
       // count any repeating/leading spaces
       uint32_t spaces = 0;
@@ -180,6 +178,7 @@ static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen)
         out += cb0r_write(out, CB0R_NEG, spaces);
         *start += spaces;
         prev += spaces;
+        count[0]++;
         continue;
       }
 
@@ -197,13 +196,10 @@ static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen)
       out += cb0r_write(out, CB0R_INT, best);
       *start += ws_tablen[best];
       prev += ws_tablen[best];
+      count[0]++;
 
     } while(*start < *end);
   }
-
-  // add break to end of indefinite length array
-  out[0] = 0xff;
-  out++;
 
   free(whitespace);
   return out;
@@ -241,7 +237,13 @@ jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
   }
 
   // add any whitespace
-  if(whitespace) at = ws2cn(at, (uint8_t *)json, len);
+  if(whitespace) {
+    // get count first for fixed array
+    uint32_t count = 0;
+    ws2cn(at, (uint8_t *)json, len, &count);
+    at += cb0r_write(at, CB0R_ARRAY, count);
+    at = ws2cn(at, (uint8_t *)json, len, &count);
+  }
 
   return jscn_load(out, at - out);
 }
