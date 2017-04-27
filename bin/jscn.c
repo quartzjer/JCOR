@@ -70,54 +70,57 @@ int main(int argc, char **argv)
   }
   char *file_in = argv[1];
   char *file_out = argv[2];
-  char *file_dict = (argc == 4)?argv[3]:NULL;
+  char *file_refs = (argc == 4)?argv[3]:NULL;
+  bool whitespace = (argc == 4)?false:true;
 
 
   size_t lin = 0;
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
 
-  if(file_dict) {
+  jscn_t refs = NULL;
+  if(file_refs) {
     size_t dlen = 0;
-    cb0r_s cbor = {0,};
-    jscn_t dict = NULL;
-    uint8_t *dbin = load(file_dict,&dlen);
-    if(!dbin || dlen <= 0 || !cb0r(dbin, dbin+dlen, 0, &cbor) || !(dict = jscn_load(&cbor, NULL)) || dict->data.type != CB0R_ARRAY) {
-      printf("dictionary file invalid: %s %u\n", file_dict, dict->data.type);
+    uint8_t *dbin = load(file_refs,&dlen);
+    if(!dbin || dlen <= 0 || !(refs = jscn_load(dbin, dlen)) || refs->data.type != CB0R_ARRAY) {
+      printf("refsionary file invalid: %s %u\n", file_refs, refs->data.type);
       return -1;
     }
   }
 
   jscn_t jscn = NULL;
-  cb0r_t cbor = NULL;
   int ret = 0;
+  size_t lout = 0;
+  uint8_t *bout = NULL;
 
   if(strstr(file_in,".json"))
   {
-    if(!(jscn = jscn_json2((char *)bin, lin))) ret = printf("JSON parsing failed: %s\n",file_in);
-    else if(!(cbor = jscn_export(jscn, NULL))) ret = printf("JSCN export failed: %s\n", file_in);
-    else printf("serialized json[%ld] to cbor[%ld]\n", lin, cbor->end - cbor->start);
-  }else if(strstr(file_in,".jwt")){
-//    lout = jwt2cn(bin,lin,bout,dict);
-//    printf("serialized jwt[%ld] to cbor[%ld]\n",lin,lout);
+    if(!(jscn = jscn_json2((char *)bin, lin, &(refs->data), whitespace))) {
+      ret = printf("JSON parsing failed: %s\n",file_in);
+    } else {
+      bout = jscn->start;
+      lout = jscn->length;
+      printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
+    }
   }else if(strstr(file_in,".jscn")){
-    /*
-    if(!jscn_load(bin,lin,&jscn)) {
+    if(!(jscn = jscn_load(bin,lin))) {
       printf("jscn file failed to load: %s\n",file_in);
       return 4;
     }
-    // TODO dict lookup
-    jscn.dict = dict;
-    lout = jscn_stringify(&jscn,(char*)bout);
-    printf("serialized cbor[%ld] to json[%ld]\n",lin,lout);
-    */
+    // TODO refs lookup on demand
+    if(!(bout = (uint8_t *)jscn_2json(jscn, &(refs->data), true))) {
+      ret = printf("JSON generation failed: %s\n", file_in);
+    } else {
+      lout = strlen((char*)bout);
+      printf("serialized cbor[%ld] to json[%ld]\n", lin, lout);
+    }
   }else{
     ret = printf("file must be .json or .jscn: %s\n",file_in);
   }
 
   free(bin);
 
-  if(!ret && cbor) ret = save(file_out, cbor->start, cbor->end - cbor->start);
+  if(!ret && bout && lout) ret = save(file_out, bout, lout);
 
   return ret;
 }
