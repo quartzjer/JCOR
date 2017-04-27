@@ -49,7 +49,7 @@ static uint8_t *on2cn_part(uint8_t *out, uint8_t *in, size_t inlen, bool iskey, 
     }
     for(uint16_t j = 0; j < i; j++) {
       const char *str = js0n(NULL, j, (char *)in, inlen, &len, NULL);
-      on2cn_part(out, (uint8_t *)str, len, (in[0] == '{' && (j & 1) == 0), refs);
+      out = on2cn_part(out, (uint8_t *)str, len, (in[0] == '{' && (j & 1) == 0), refs);
     }
 
   } else if(in[inlen] == '"') { // js0n type detection pattern :/
@@ -217,28 +217,31 @@ jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
   char *ws[2] = { NULL, "end" }; // notice if there's any whitespace also
   js0n("\0", 1, json, len, &err, ws);
   if(err) return 0;
+  if(!ws[0]) whitespace = false;
 
   // first make the JSCN tag and array
   uint8_t *out = malloc(len);
   uint8_t *at = out;
-  at += cb0r_write(at, CB0R_TAG, 42);
+  at += cb0r_write(at, CB0R_TAG, 20);
   uint8_t items = 1;
-  if(refs) items++;
-  if(ws[0]) items++;
+  if(refs || whitespace) items++;
+  if(whitespace) items++;
   at += cb0r_write(at, CB0R_ARRAY, items);
+
+  // generate into value
+  at = on2cn_part(at, (uint8_t *)json, len, false, refs);
 
   if(refs) {
     cb0r_s res;
     if(!cb0r_get(refs, 0, &res)) return 0;
     at += cb0r_write(at, CB0R_INT, res.value);
     printf("using dictionary %llu\n", res.value);
+  }else if(whitespace) {
+    at += cb0r_write(at, CB0R_INT, 0);
   }
 
-  // generate into value
-  at = on2cn_part(at, (uint8_t *)json, len, false, refs);
-
   // add any whitespace
-  if(ws[0]) at = ws2cn(at, (uint8_t *)json, len);
+  if(whitespace) at = ws2cn(at, (uint8_t *)json, len);
 
   return jscn_load(out, at - out);
 }

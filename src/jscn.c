@@ -22,18 +22,22 @@ jscn_t jscn_load(uint8_t *cbor, uint32_t len)
     return false;
   }
 
-  // TODO make jscn, fill in
-  /*
-  cb0r(res.start + res.header, res.end, 0, &(result->map));
-  if(result->map.type != CB0R_MAP || !result->map.count) {
-    printf("JSCN does not begin with a map: %u\n", result->map.type);
-    return false;
+  jscn_t jscn = malloc(sizeof(jscn_s));
+  memset(jscn, 0, sizeof(jscn_s));
+  jscn->start = cbor;
+  jscn->length = len;
+  cb0r(cbor, cbor + len, 0, &(jscn->tag));
+
+  // extract parts of the array
+  cb0r_get(&res, 0, &(jscn->data));
+
+  if(res.count > 1) {
+    cb0r_s tmp;
+    cb0r_get(&res, 1, &tmp);
+    jscn->refs = tmp.value;
   }
 
-  if(!cb0r_find(&(result->map), CB0R_INT, JSCN_KEY_DATA, NULL, &(result->data))) {
-    printf("JSCN does not contain data");
-    return false;
-  }
-*/
-  return NULL;
+  if(res.count > 2) cb0r_get(&res, 2, &(jscn->ws));
+
+  return jscn;
 }

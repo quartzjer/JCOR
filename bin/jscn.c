@@ -78,13 +78,16 @@ int main(int argc, char **argv)
   uint8_t *bin = load(file_in,&lin);
   if(!bin || lin <= 0) return -1;
 
-  jscn_t refs = NULL;
+  cb0r_t refs = NULL;
   if(file_refs) {
     size_t dlen = 0;
     uint8_t *dbin = load(file_refs,&dlen);
-    if(!dbin || dlen <= 0 || !(refs = jscn_load(dbin, dlen)) || refs->data.type != CB0R_ARRAY) {
-      printf("refsionary file invalid: %s %u\n", file_refs, refs->data.type);
+    jscn_t dref = NULL;
+    if(!dbin || dlen <= 0 || !(dref = jscn_load(dbin, dlen)) || dref->data.type != CB0R_ARRAY) {
+      printf("refs file invalid: %s %u\n", file_refs, dref->data.type);
       return -1;
+    } else {
+      refs = &(dref->data);
     }
   }
 
@@ -95,7 +98,7 @@ int main(int argc, char **argv)
 
   if(strstr(file_in,".json"))
   {
-    if(!(jscn = jscn_json2((char *)bin, lin, &(refs->data), whitespace))) {
+    if(!(jscn = jscn_json2((char *)bin, lin, refs, whitespace))) {
       ret = printf("JSON parsing failed: %s\n",file_in);
     } else {
       bout = jscn->start;
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
       return 4;
     }
     // TODO refs lookup on demand
-    if(!(bout = (uint8_t *)jscn_2json(jscn, &(refs->data), true))) {
+    if(!(bout = (uint8_t *)jscn_2json(jscn, refs, true))) {
       ret = printf("JSON generation failed: %s\n", file_in);
     } else {
       lout = strlen((char*)bout);
