@@ -46,10 +46,10 @@ Table of Contents
    4.  Whitespace Hints  . . . . . . . . . . . . . . . . . . . . . .   5
    5.  Constrained API . . . . . . . . . . . . . . . . . . . . . . .   5
    6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   5
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  11
-     7.1.  CBOR Tag Registrations  . . . . . . . . . . . . . . . . .  11
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  11
-   9.  Normative References  . . . . . . . . . . . . . . . . . . . .  11
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  12
+     7.1.  CBOR Tag Registrations  . . . . . . . . . . . . . . . . .  12
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  12
+   9.  Normative References  . . . . . . . . . . . . . . . . . . . .  12
 
 
 
@@ -58,9 +58,9 @@ Miller                   Expires October 9, 2017                [Page 1]
                                   JSCN                        April 2017
 
 
-   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  12
-   Appendix B.  Notices  . . . . . . . . . . . . . . . . . . . . . .  12
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  12
+   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  13
+   Appendix B.  Notices  . . . . . . . . . . . . . . . . . . . . . .  13
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  13
 
 1.  Introduction
 
@@ -313,8 +313,8 @@ Miller                   Expires October 9, 2017                [Page 5]
                              ]
                            }
 
-        D9 06E4                         # tag(1764)
-           98 41                        # array(65)
+        D4                              # tag(20)
+           83                           # array(3)
               A6                        # map(6)
                  63                     # text(3)
                     6D6170              # "map"
@@ -366,26 +366,26 @@ Miller                   Expires October 9, 2017                [Page 6]
                     1B 0000000100000000 # unsigned(4294967296)
                     1B 0001000000000000 # unsigned(281474976710656)
                     3B 0000FFFFFFFFFFFF # negative(281474976710655)
-              01                        # unsigned(1)
-              01                        # unsigned(1)
-              26                        # negative(6)
-              08                        # unsigned(8)
-              01                        # unsigned(1)
-              28                        # negative(8)
-              01                        # unsigned(1)
-              02                        # unsigned(2)
-              06                        # unsigned(6)
-              02                        # unsigned(2)
-              06                        # unsigned(6)
-              02                        # unsigned(2)
-              08                        # unsigned(8)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              01                        # unsigned(1)
-              02                        # unsigned(2)
-              01                        # unsigned(1)
-              27                        # negative(7)
-              05                        # unsigned(5)
+              00                        # unsigned(0)
+              98 40                     # array(64)
+                 01                     # unsigned(1)
+                 01                     # unsigned(1)
+                 26                     # negative(6)
+                 08                     # unsigned(8)
+                 01                     # unsigned(1)
+                 28                     # negative(8)
+                 01                     # unsigned(1)
+                 02                     # unsigned(2)
+                 06                     # unsigned(6)
+                 02                     # unsigned(2)
+                 06                     # unsigned(6)
+                 02                     # unsigned(2)
+                 08                     # unsigned(8)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 01                     # unsigned(1)
+                 02                     # unsigned(2)
+                 01                     # unsigned(1)
 
 
 
@@ -394,58 +394,114 @@ Miller                   Expires October 9, 2017                [Page 7]
                                   JSCN                        April 2017
 
 
-              01                        # unsigned(1)
-              26                        # negative(6)
-              04                        # unsigned(4)
-              01                        # unsigned(1)
-              29                        # negative(9)
-              01                        # unsigned(1)
-              02                        # unsigned(2)
-              06                        # unsigned(6)
-              02                        # unsigned(2)
-              05                        # unsigned(5)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              01                        # unsigned(1)
-              02                        # unsigned(2)
-              01                        # unsigned(1)
-              27                        # negative(7)
-              01                        # unsigned(1)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              02                        # unsigned(2)
-              03                        # unsigned(3)
-              02                        # unsigned(2)
-              03                        # unsigned(3)
-              02                        # unsigned(2)
-              04                        # unsigned(4)
-              02                        # unsigned(2)
-              04                        # unsigned(4)
-              02                        # unsigned(2)
-              06                        # unsigned(6)
-              02                        # unsigned(2)
-              06                        # unsigned(6)
-              02                        # unsigned(2)
-              0B                        # unsigned(11)
-              02                        # unsigned(2)
-              0B                        # unsigned(11)
-              02                        # unsigned(2)
-              10                        # unsigned(16)
-              02                        # unsigned(2)
-              10                        # unsigned(16)
-              01                        # unsigned(1)
-              01                        # unsigned(1)
-              00                        # unsigned(0)
+                 27                     # negative(7)
+                 05                     # unsigned(5)
+                 01                     # unsigned(1)
+                 26                     # negative(6)
+                 04                     # unsigned(4)
+                 01                     # unsigned(1)
+                 29                     # negative(9)
+                 01                     # unsigned(1)
+                 02                     # unsigned(2)
+                 06                     # unsigned(6)
+                 02                     # unsigned(2)
+                 05                     # unsigned(5)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 01                     # unsigned(1)
+                 02                     # unsigned(2)
+                 01                     # unsigned(1)
+                 27                     # negative(7)
+                 01                     # unsigned(1)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 02                     # unsigned(2)
+                 03                     # unsigned(3)
+                 02                     # unsigned(2)
+                 03                     # unsigned(3)
+                 02                     # unsigned(2)
+                 04                     # unsigned(4)
+                 02                     # unsigned(2)
+                 04                     # unsigned(4)
+                 02                     # unsigned(2)
+                 06                     # unsigned(6)
+                 02                     # unsigned(2)
+                 06                     # unsigned(6)
+                 02                     # unsigned(2)
+                 0B                     # unsigned(11)
+                 02                     # unsigned(2)
+                 0B                     # unsigned(11)
+                 02                     # unsigned(2)
+                 10                     # unsigned(16)
+                 02                     # unsigned(2)
+                 10                     # unsigned(16)
+                 01                     # unsigned(1)
+                 01                     # unsigned(1)
+                 00                     # unsigned(0)
 
-   With no whitespace and using a references of "[1,"map","value","array
-   ","one","two","three","bool","neg","simple","ints"]" (90 bytes):
 
 
 
 
 Miller                   Expires October 9, 2017                [Page 8]
+
+                                  JSCN                        April 2017
+
+
+   With no whitespace and using a Reference Set of "[1,"map","value","ar
+   ray","one","two","three","bool","neg","simple","ints"]" (90 bytes):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Miller                   Expires October 9, 2017                [Page 9]
 
                                   JSCN                        April 2017
 
@@ -501,7 +557,7 @@ Miller                   Expires October 9, 2017                [Page 8]
 
 
 
-Miller                   Expires October 9, 2017                [Page 9]
+Miller                   Expires October 9, 2017               [Page 10]
 
                                   JSCN                        April 2017
 
@@ -512,8 +568,8 @@ Miller                   Expires October 9, 2017                [Page 9]
 
 {"protected":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9","payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9","signature":"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"}
 
-   Using references of "[1,"payload","signature","protected","alg","HS25
-   6","sub","name","admin"]" (80):
+   JSCN (80 bytes) using a Reference Set of "[1,"payload","signature","p
+   rotected","alg","HS256","sub","name","admin"]":
 
 D4                                      # tag(20)
    82                                   # array(2)
@@ -557,7 +613,7 @@ D4                                      # tag(20)
 
 
 
-Miller                   Expires October 9, 2017               [Page 10]
+Miller                   Expires October 9, 2017               [Page 11]
 
                                   JSCN                        April 2017
 
@@ -568,10 +624,10 @@ Miller                   Expires October 9, 2017               [Page 10]
    Tags" registry defined in RFC 7049 [RFC7049]:
 
    o  Assign the tag "Constrained JSON" in the 1 to 23 value range (one
-      byte long when encoded).
+      byte in length when encoded).
 
    o  Assign the tag "Upper Case Modifier" in the 24 to 255 value range
-      (two bytes long when encoded).
+      (two bytes in length when encoded).
 
    The tags to be assigned are described below.
 
@@ -613,7 +669,7 @@ Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
 
 
-Miller                   Expires October 9, 2017               [Page 11]
+Miller                   Expires October 9, 2017               [Page 12]
 
                                   JSCN                        April 2017
 
@@ -669,4 +725,4 @@ Author's Address
 
 
 
-Miller                   Expires October 9, 2017               [Page 12]
+Miller                   Expires October 9, 2017               [Page 13]
