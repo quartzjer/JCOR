@@ -4,10 +4,9 @@
 % docName = "draft"
 % area = ""
 % workgroup = ""
-% date = 2017-04-20T00:00:00Z
 % ipr = "none"
 %
-% keyword = ["JSON", "CBOR", "constrained", "JOSE", "JWT"]
+% keyword = ["JSON", "CBOR", "constrained", "JOSE", "JWT", "IoT"]
 %
 % [pi]
 % private = "Draft"
@@ -24,24 +23,29 @@
 % fullname="Jeremie Miller"
 %   [author.address]
 %   email = "jeremie@jabber.org"
-<!--
-  NOTE:  This Markdown file and any generated XML file is input used to produce the authoritative copy of an IETF specification.  The authoritative copy is the HTML output.  This XML source file is not authoritative.  The statement ipr="none" is present only to satisfy the document compilation tool and is not indicative of the IPR status of this specification.  The IPR for this specification is described in the "Notices" section.  This is a public IETF document and not a private document, as the private="..." declaration could be taken to indicate.
--->
+% [[author]]
+% initials="P."
+% surname="Saint-Andre"
+% fullname="Peter Saint-Andre"
+%   [author.address]
+%   email = "stpeter@jabber.org"
 .# Abstract
 
-The adoption of JSON is widespread in all traditional networking and software environments, but there has been more limited use in embedded and constrained environments due to the always-minimized storage and network capacities inherent in low-cost and low-power devices.
-
-This specification addresses the challenges of using JSON with constrained devices by providing a set of mapping rules to CBOR that are able to retain the complete semantic value of the data such that the orginal JSON string can always be identically re-created.  This constrained notation is intended to be usable directly by devices as a native data type which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher level systems.
-
-A driving goal of this specification has been to enable the direct use of all existing JOSE standards unmodified in a constrained environment and to enable the immediate adoption of OpenID Connect as an identity management solution for the Internet of Things.
+This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
 {mainmatter}
 
 # Introduction
 
-Constrained JSON (JSCN) is a set of rules for re-coding the JSON structures by mapping them directly to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
+Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see [@!RFC7228]).
 
-All transcoding software must operate directly on a UTF-8 JSON string whenever complete round-trip compatibly to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
+This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+
+A primary goal of JSCN is to enable the use of all JOSE standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) unmodified in constrained environments and to enable the adoption of OpenID Connect as an identity management solution for the Internet of Things.
+
+JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
+
+All transcoding software must operate on a UTF-8 JSON string whenever complete round-trip compatibilityy to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
 
 A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 

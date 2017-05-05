@@ -3,7 +3,9 @@
 
 
                                                                J. Miller
-                                                          April 20, 2017
+
+                                                          P. Saint-Andre
+                                                             May 4, 2017
 
 
                     JSON Constrained Notation (JSCN)
@@ -11,66 +13,76 @@
 
 Abstract
 
-   The adoption of JSON is widespread in all traditional networking and
-   software environments, but there has been more limited use in
-   embedded and constrained environments due to the always-minimized
-   storage and network capacities inherent in low-cost and low-power
-   devices.
-
-   This specification addresses the challenges of using JSON with
-   constrained devices by providing a set of mapping rules to CBOR that
-   are able to retain the complete semantic value of the data such that
-   the orginal JSON string can always be identically re-created.  This
-   constrained notation is intended to be usable directly by devices as
-   a native data type which can always be represented as JSON when
-   necessary for diagnostics, compatibility, and ease of integration
-   with higher level systems.
-
-   A driving goal of this specification has been to enable the direct
-   use of all existing JOSE standards unmodified in a constrained
-   environment and to enable the immediate adoption of OpenID Connect as
-   an identity management solution for the Internet of Things.
+   This specification addresses the challenges of using JavaScript
+   Object Notation (JSON) with constrained devices by providing a set of
+   mapping rules to Concise Binary Object Representation (CBOR) that
+   preserve all semantic information, such that the original JSON string
+   can always be identically re-created.  JSON Constrained Notation can
+   be used directly by devices as a native data format, which can always
+   be represented as JSON when necessary for diagnostics, compatibility,
+   and ease of integration with higher-level systems.
 
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
-     1.1.  Requirements Notations and Conventions  . . . . . . . . .   2
-     1.2.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   2
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   1
+     1.1.  Requirements Notations and Conventions  . . . . . . . . .   3
+     1.2.  Terminology . . . . . . . . . . . . . . . . . . . . . . .   3
    2.  CBOR Encoding . . . . . . . . . . . . . . . . . . . . . . . .   3
      2.1.  Structures  . . . . . . . . . . . . . . . . . . . . . . .   3
      2.2.  Simple Types  . . . . . . . . . . . . . . . . . . . . . .   3
-     2.3.  Numbers . . . . . . . . . . . . . . . . . . . . . . . . .   3
-     2.4.  Strings . . . . . . . . . . . . . . . . . . . . . . . . .   3
+     2.3.  Numbers . . . . . . . . . . . . . . . . . . . . . . . . .   4
+     2.4.  Strings . . . . . . . . . . . . . . . . . . . . . . . . .   4
        2.4.1.  Base64 / Base16 Encoded . . . . . . . . . . . . . . .   4
    3.  Reference Sets  . . . . . . . . . . . . . . . . . . . . . . .   4
    4.  Whitespace Hints  . . . . . . . . . . . . . . . . . . . . . .   5
    5.  Constrained API . . . . . . . . . . . . . . . . . . . . . . .   5
-   6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   5
+   6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   6
    7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  12
      7.1.  CBOR Tag Registrations  . . . . . . . . . . . . . . . . .  12
    8.  Security Considerations . . . . . . . . . . . . . . . . . . .  12
    9.  Normative References  . . . . . . . . . . . . . . . . . . . .  12
-
-
-
-Miller                  Expires October 22, 2017                [Page 1]
-
-                                  JSCN                        April 2017
-
-
    Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  13
    Appendix B.  Notices  . . . . . . . . . . . . . . . . . . . . . .  13
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  13
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  13
 
 1.  Introduction
 
-   Constrained JSON (JSCN) is a set of rules for re-coding the JSON
-   structures by mapping them directly to their CBOR parallels whenever
-   possible, and then increasing the efficiency through introspection
-   and replacement of well-known strings with compact references.
+   Although JavaScript Object Notation (JSON) [RFC7159] has been widely
+   adopted in traditional networking and software environments, its use
+   in embedded and constrained environments has been more limited
 
-   All transcoding software must operate directly on a UTF-8 JSON string
-   whenever complete round-trip compatibly to and from JSON is required,
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 1]
+
+                                  JSCN                          May 2017
+
+
+   because of the minimal storage and network capacities inherent in
+   low-cost and low-power devices (see [RFC7228]).
+
+   This specification addresses the challenges of using JSON with
+   constrained devices by defining a set of mapping rules to Concise
+   Binary Object Representation (CBOR) [RFC7049] that preserve all
+   semantic information, such that the original JSON string can always
+   be identically re-created.  JSON Constrained Notation (JSCN) can be
+   used directly by devices as a native data format, which can always be
+   represented as JSON when necessary for diagnostics, compatibility,
+   and ease of integration with higher-level systems.
+
+   A primary goal of JSCN is to enable the use of all JOSE standards
+   ([RFC7515], [RFC7516], [RFC7517], [RFC7518], [RFC7519]) unmodified in
+   constrained environments and to enable the adoption of OpenID Connect
+   as an identity management solution for the Internet of Things.
+
+   JSCN is designed to leverage, not replace, CBOR.  Instead, JSCN
+   specifies rules for re-coding JSON structures by mapping them to
+   their CBOR parallels whenever possible, and then increasing the
+   efficiency through introspection and replacement of well-known
+   strings with compact references.
+
+   All transcoding software must operate on a UTF-8 JSON string whenever
+   complete round-trip compatibilityy to and from JSON is required,
    including mapping any contained non-structural whitespace (such as
    with JWTs for signature validation).  If a transcoder is only
    operating with an already parsed JSON value (the result of
@@ -93,6 +105,15 @@ Miller                  Expires October 22, 2017                [Page 1]
    the CBOR data values will provide a uniform view even if the
    underlying CBOR has encoding differences.
 
+
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 2]
+
+                                  JSCN                          May 2017
+
+
 1.1.  Requirements Notations and Conventions
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
@@ -104,15 +125,6 @@ Miller                  Expires October 22, 2017                [Page 1]
    This specification uses the following terms:
 
    o  Reference
-
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 2]
-
-                                  JSCN                        April 2017
-
 
       *  Used within JSCN data to refer to well-known UTF-8 strings by
          using a CBOR byte string of length one, where the byte value is
@@ -146,6 +158,18 @@ Miller                  Expires October 22, 2017                [Page 2]
    JSON "true", "false", and "null" are serialized to their CBOR type 7
    simple values.
 
+
+
+
+
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 3]
+
+                                  JSCN                          May 2017
+
+
 2.3.  Numbers
 
    Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the
@@ -161,15 +185,6 @@ Miller                  Expires October 22, 2017                [Page 2]
 
    Strings are preserved as a UTF-8 string (type 3), they are always the
    bare escaped JSON string values and must not have been un- and re-
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 3]
-
-                                  JSCN                        April 2017
-
-
    escaped unless resticted by operating in a limited parsed context
    without any JSON compatibility guarantees.
 
@@ -203,6 +218,14 @@ Miller                  Expires October 22, 2017                [Page 3]
       string keys, their position in the array is the byte value they
       are replaced with.
 
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 4]
+
+                                  JSCN                          May 2017
+
+
    o  Reference Sets may be combined when its JSCN definition also
       contains another Reference Set id, any byte strings in the
       definition array are then replaced with the key from the given
@@ -217,15 +240,6 @@ Miller                  Expires October 22, 2017                [Page 3]
 
    o  When generating any JSON values from CBOR and a CBOR byte string
       (type 2) is encountered the single byte value must match the array
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 4]
-
-                                  JSCN                        April 2017
-
-
       offset of the active references to be used as the replacement for
       that byte string.
 
@@ -260,6 +274,14 @@ Miller                  Expires October 22, 2017                [Page 4]
    string API available so that a constrained application can choose
    either regardless of how the CBOR types represent the data.
 
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 5]
+
+                                  JSCN                          May 2017
+
+
    For example, when a JSON string value is encoded in JSCN as a CBOR
    base64url tag plus byte string, the application must be able to
    access either the original base64url string value or the CBOR binary
@@ -270,17 +292,6 @@ Miller                  Expires October 22, 2017                [Page 4]
 
    JSON (318 bytes) to JSCN (187 bytes) with no references and
    whitespace preserved:
-
-
-
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 5]
-
-                                  JSCN                        April 2017
-
 
                            {
                              "map": "value",
@@ -319,6 +330,14 @@ Miller                  Expires October 22, 2017                [Page 5]
                  63                     # text(3)
                     6D6170              # "map"
                  65                     # text(5)
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 6]
+
+                                  JSCN                          May 2017
+
+
                     76616C7565          # "value"
                  65                     # text(5)
                     6172726179          # "array"
@@ -330,14 +349,6 @@ Miller                  Expires October 22, 2017                [Page 5]
                     65                  # text(5)
                        7468726565       # "three"
                     18 2A               # unsigned(42)
-
-
-
-Miller                  Expires October 22, 2017                [Page 6]
-
-                                  JSCN                        April 2017
-
-
                  64                     # text(4)
                     626F6F6C            # "bool"
                  F5                     # primitive(21)
@@ -375,6 +386,14 @@ Miller                  Expires October 22, 2017                [Page 6]
                  01                     # unsigned(1)
                  28                     # negative(8)
                  01                     # unsigned(1)
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 7]
+
+                                  JSCN                          May 2017
+
+
                  02                     # unsigned(2)
                  06                     # unsigned(6)
                  02                     # unsigned(2)
@@ -386,14 +405,6 @@ Miller                  Expires October 22, 2017                [Page 6]
                  01                     # unsigned(1)
                  02                     # unsigned(2)
                  01                     # unsigned(1)
-
-
-
-Miller                  Expires October 22, 2017                [Page 7]
-
-                                  JSCN                        April 2017
-
-
                  27                     # negative(7)
                  05                     # unsigned(5)
                  01                     # unsigned(1)
@@ -431,6 +442,14 @@ Miller                  Expires October 22, 2017                [Page 7]
                  06                     # unsigned(6)
                  02                     # unsigned(2)
                  0B                     # unsigned(11)
+
+
+
+Miller & Saint-Andre    Expires November 5, 2017                [Page 8]
+
+                                  JSCN                          May 2017
+
+
                  02                     # unsigned(2)
                  0B                     # unsigned(11)
                  02                     # unsigned(2)
@@ -440,15 +459,6 @@ Miller                  Expires October 22, 2017                [Page 7]
                  01                     # unsigned(1)
                  01                     # unsigned(1)
                  00                     # unsigned(0)
-
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 8]
-
-                                  JSCN                        April 2017
-
 
    With no whitespace and using a Reference Set of "[1,"map","value","ar
    ray","one","two","three","bool","neg","simple","ints"]" (90 bytes):
@@ -491,19 +501,9 @@ Miller                  Expires October 22, 2017                [Page 8]
 
 
 
-
-
-
-
-
-
-
-
-
-
-Miller                  Expires October 22, 2017                [Page 9]
+Miller & Saint-Andre    Expires November 5, 2017                [Page 9]
 
-                                  JSCN                        April 2017
+                                  JSCN                          May 2017
 
 
         D4                              # tag(20)
@@ -557,9 +557,9 @@ Miller                  Expires October 22, 2017                [Page 9]
 
 
 
-Miller                  Expires October 22, 2017               [Page 10]
+Miller & Saint-Andre    Expires November 5, 2017               [Page 10]
 
-                                  JSCN                        April 2017
+                                  JSCN                          May 2017
 
 
    JWT (149 bytes) "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM
@@ -613,9 +613,9 @@ D4                                      # tag(20)
 
 
 
-Miller                  Expires October 22, 2017               [Page 11]
+Miller & Saint-Andre    Expires November 5, 2017               [Page 11]
 
-                                  JSCN                        April 2017
+                                  JSCN                          May 2017
 
 
 7.  IANA Considerations
@@ -669,10 +669,39 @@ Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
 
 
-Miller                  Expires October 22, 2017               [Page 12]
+Miller & Saint-Andre    Expires November 5, 2017               [Page 12]
 
-                                  JSCN                        April 2017
+                                  JSCN                          May 2017
 
+
+   [RFC7159]  Bray, T., Ed., "The JavaScript Object Notation (JSON) Data
+              Interchange Format", RFC 7159, DOI 10.17487/RFC7159, March
+              2014, <http://www.rfc-editor.org/info/rfc7159>.
+
+   [RFC7228]  Bormann, C., Ersue, M., and A. Keranen, "Terminology for
+              Constrained-Node Networks", RFC 7228,
+              DOI 10.17487/RFC7228, May 2014,
+              <http://www.rfc-editor.org/info/rfc7228>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <http://www.rfc-editor.org/info/rfc7515>.
+
+   [RFC7516]  Jones, M. and J. Hildebrand, "JSON Web Encryption (JWE)",
+              RFC 7516, DOI 10.17487/RFC7516, May 2015,
+              <http://www.rfc-editor.org/info/rfc7516>.
+
+   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
+              DOI 10.17487/RFC7517, May 2015,
+              <http://www.rfc-editor.org/info/rfc7517>.
+
+   [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
+              DOI 10.17487/RFC7518, May 2015,
+              <http://www.rfc-editor.org/info/rfc7518>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
+              <http://www.rfc-editor.org/info/rfc7519>.
 
 Appendix A.  Acknowledgements
 
@@ -682,47 +711,18 @@ Appendix B.  Notices
 
    TODO
 
-Author's Address
+Authors' Addresses
 
    Jeremie Miller
 
    Email: jeremie@jabber.org
 
 
+   Peter Saint-Andre
+
+   Email: stpeter@jabber.org
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Miller                  Expires October 22, 2017               [Page 13]
+Miller & Saint-Andre    Expires November 5, 2017               [Page 13]
