@@ -31,7 +31,7 @@
 %   email = "stpeter@jabber.org"
 .# Abstract
 
-This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
 {mainmatter}
 
@@ -39,9 +39,9 @@ This specification addresses the challenges of using JavaScript Object Notation 
 
 Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see [@!RFC7228]).
 
-This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
-A primary goal of JSCN is to enable the use of all JOSE standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) unmodified in constrained environments and to enable the adoption of OpenID Connect as an identity management solution for the Internet of Things.
+A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE) standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) to be used unmodified in constrained environments.  One result is that OpenID Connect (which is based on JOSE) can be adopted as an identity management solution for the Internet of Things.
 
 JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
 
@@ -51,75 +51,81 @@ A significant reduction in space is also provided in JSCN when the device and ap
 
 This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines basic API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has encoding differences.
 
-## Requirements Notations and Conventions
-
-The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**MAY**", and "**OPTIONAL**" in this document are to be interpreted as described in RFC 2119 [@!RFC2119].
-
 ## Terminology
 
-This specification uses the following terms:
+Many terms used in this document are defined in the specifications for JSON [@!RFC7159] and CBOR [@!RFC7049]. This specification defines the following additional terms:
 
 - Reference
-  - Used within JSCN data to refer to well-known UTF-8 strings by using a CBOR byte string of length one, where the byte value is the reference lookup id.
+  - A pointer within JSCN data that refers to a well-known UTF-8 string by using a CBOR byte string of length one, where the byte value is the lookup identifier for the Reference.
 - Reference Set
-  - A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the Reference id is the array offset to the replacement string, and the first position in the array identifies that Reference Set.
+  - A CBOR array of UTF-8 strings that are used to replace any Reference within any JSCN data, where the Reference identifier is the array offset to the replacement string and the first position in the array identifies the Reference Set.
 - Whitespace Hints
   - A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
 
+The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**MAY**", and "**OPTIONAL**" in this document are to be interpreted as described in RFC 2119 [@!RFC2119].
+
 # CBOR Encoding
 
-## Structures
+JSCN encodes JSON data types to CBOR data types as described in the following sections.
 
-Direct serialization of JSON structures to the CBOR major object/array types 4 and 5, ordering of key/value pairs in maps/objects must always be preserved.
+## Structured Types
 
-## Simple Types
+JSON defines two structured types: arrays and objects.  These are serialized to CBOR major type 4 (array) and type 5 (map), respectively.  Ordering of key/value pairs in JSON objects and CBOR maps MUST be preserved.
 
-JSON `true`, `false`, and `null` are serialized to their CBOR type 7 simple values.
+## Primitive Types
 
-## Numbers 
+### Boolean and Null
 
-Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the contained `e` symbol is upper-case in JSON the case tag (31) must also be used.
+The JSON literal names `false`, `true`, and `null` are serialized to the CBOR major type 7 simple values 20, 21, and 22 respectively.
 
-JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5).
+### Numbers 
 
-## Strings
+A JSCN encoder attempts to encode a JSON number as a CBOR unsigned integer (type 0), negative integer (type 1), or float (type 7) and then test for compatibility by round-tripping the CBOR data item back to a JSON number.  If the resulting JSON number is not equivalent to the input number, the encoder MUST instead encode it as a CBOR Bigfloat (tag 5).
 
-Strings are preserved as a UTF-8 string (type 3), they are always the bare escaped JSON string values and must not have been un- and re-escaped unless resticted by operating in a limited parsed context without any JSON compatibility guarantees.
+The JSON exponent value (if any) is encoded as a CBOR exponent (tag 4).  If the contained `e` symbol is upper case in JSON, the "Upper Case Modifier" tag defined below MUST be included.
 
-### Base64 / Base16 Encoded
+### Strings
 
-All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23/31).
+A JSON string is encoded as a CBOR UTF-8 string (type 3), i.e., as a series of UTF-8 [@!RFC3629] characters (e.g., the word "one" is encoded as "6F6E65").  JSON string values MUST NOT be un-escaped and re-escaped unless the JSCN encoder is restricted by operating in a limited parsed context without any JSON compatibility guarantees.
 
-The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).
+#### Base64 / Base16 Encoded
+
+A JSCN encoder MUST round-trip test all JSON strings for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them.  If identical byte strings result, the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined below MUST be included if the hexadecimal letters A-F are upper case in the original JSON string.
+
+A JSCN encoder MUST perform introspection on the resulting decoded byte string to determine if it begins with a JSON structure byte of '{' or '['.  The encoder SHOULD then round-trip test the string as a possible JSON object or array so that it can encode the string more efficiently into a CBOR data item instead of a byte string (this pattern is common in the JOSE specification).
 
 # Reference Sets
 
-* The Constrained JSON tag is followed by an array who's second item identifies the Reference Set used in the data, it is either the id value or an array that defines an inline Reference Set.
-* Reference Sets are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known reference sets.
-* A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with.
-* Reference Sets may be combined when its JSCN definition also contains another Reference Set id, any byte strings in the definition array are then replaced with the key from the given references.
-* Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths >1 are currently reserved.
-* When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active references to be used as the replacement for that byte string.
+* The "Constrained JSON" tag is followed by an array whose second item identifies the Reference Set used in the data.  This is either a Reference Set identifier or an array that defines an inline Reference Set.
+* A Reference Set identifier is a unique integer that maps to a Reference Set known to applications using the set.  Public, well-known reference sets can be registered as described in the IANA Considerations section of this document.
+* A Reference Set definition is encoded as a JSCN array, where the first value is the Reference Set identifier followed by all of the UTF-8 string keys.  A key's position in the array is the byte value with which it is replaced.
+* A Reference Set can include another Reference Set by encoding the second set's identifer in the JSCN array that defines the first Reference Set.  Any byte strings in the definition array are then replaced with the key from the references contained in the second Reference Set.
+* JSON UTF-8 strings representing keys or values are first checked against all active references (if any) for possible replacement.  A replacement is always a CBOR byte string (type 2) of length 1, where the single byte represents the index value of the key in the references array from 1-255.  Value 0 and byte lengths greater than 1 are reserved for future use.
+* When a JSCN decoder generates JSON values from CBOR and it encounters a CBOR byte string (type 2), single byte value MUST match the array offset of the active references to be used as the replacement for that byte string.
 
 # Whitespace Hints
 
-* Whitespace hints are an array that contains only integers which indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.
+* Whitespace hints are an array containing integers that indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.
 * Each offset integer is relative to the position of the previous offset such that all integers are of small values.
-* Any negative integer offset indicates a single space character (0x20) at the offset of the positive value of that integer.
-* All positive integer offsets are followed by another integer, positive values (0-23) indicate a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat.
+* A negative integer offset indicates a single ASCII space character (0x20) at the offset of the positive value of that integer.
+* An unsigned integer offset is followed by another integer, where unsigned values (0-23) indicate a whitespace string in a pre-defined lookup table and negative values specify the number of space characters (0x20) to repeat.
 * When adding back any whitespace to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position.
 
 (TODO embed whitespace lookup table and examples)
 
 # Constrained API
 
-When the JSCN is being used directly by a software library all access to the contained data values must have both a native type and JSON-string API available so that a constrained application can choose either regardless of how the CBOR types represent the data.
+In order to ease the use of JSCN in contrained environments, an implementation should make data values available both as native types and as JSON strings; this enables a constrained application to choose either format regardless of how the CBOR types represent the data.
 
-For example, when a JSON string value is encoded in JSCN as a CBOR base64url tag plus byte string, the application must be able to access either the original base64url string value or the CBOR binary byte string as needed by context, but should not alter behavior based on which way the value is encoded in CBOR.
+For example, when a JSON string value is encoded in JSCN as a CBOR base64url tag plus byte string, a constrained application can then access either the original base64url string value or the CBOR binary byte string as needed, but should not alter behavior based on which way the value is encoded in CBOR.
 
 # Examples
 
-JSON (318 bytes) to JSCN (187 bytes) with no references and whitespace preserved:
+## JSON
+
+### Input
+
+Consider the following JSON as input to a JSCN encoder.
 
 ```json
 {
@@ -153,6 +159,68 @@ JSON (318 bytes) to JSCN (187 bytes) with no references and whitespace preserved
   ]
 }
 ```
+
+### Optimized JSCN Encoding
+
+An optimized encoding would remove whitespace and use a Reference Set. Here the reference would be:
+
+`[1,"map","value","array","one","two","three","bool","neg","simple","ints"]`
+
+The resulting JSCN encoding is 90 bytes compared to 318 bytes for the JSON input. 
+
+``` ascii-art
+D4                              # tag(20)
+   82                           # array(2)
+      A6                        # map(6)
+         41                     # bytes(1)
+            01                  # "\x01"
+         41                     # bytes(1)
+            02                  # "\x02"
+         41                     # bytes(1)
+            03                  # "\x03"
+         84                     # array(4)
+            41                  # bytes(1)
+               04               # "\x04"
+            41                  # bytes(1)
+               05               # "\x05"
+            41                  # bytes(1)
+               06               # "\x06"
+            18 2A               # unsigned(42)
+         41                     # bytes(1)
+            07                  # "\a"
+         F5                     # primitive(21)
+         41                     # bytes(1)
+            08                  # "\b"
+         38 29                  # negative(41)
+         41                     # bytes(1)
+            09                  # "\t"
+         83                     # array(3)
+            F4                  # primitive(20)
+            F6                  # primitive(22)
+            60                  # text(0)
+                                # ""
+         41                     # bytes(1)
+            0A                  # "\n"
+         8C                     # array(12)
+            00                  # unsigned(0)
+            01                  # unsigned(1)
+            17                  # unsigned(23)
+            18 18               # unsigned(24)
+            19 00FF             # unsigned(255)
+            19 0100             # unsigned(256)
+            19 FFFF             # unsigned(65535)
+            1A 00010000         # unsigned(65536)
+            1B 00000000FFFFFFFF # unsigned(4294967295)
+            1B 0000000100000000 # unsigned(4294967296)
+            1B 0001000000000000 # unsigned(281474976710656)
+            3B 0000FFFFFFFFFFFF # negative(281474976710655)
+      01                        # unsigned(1)
+```
+
+### Unoptimized JSCN Encoding
+
+An unoptimized encoding would not use a Reference Set and would preserve whitespace. The unoptimized encoding would reduce the data from the 318 bytes (JSON) to 187 bytes (JSCN).
+
 
 ``` ascii-art
 D4                              # tag(20)
@@ -268,62 +336,31 @@ D4                              # tag(20)
          00                     # unsigned(0)
 ```
 
-With no whitespace and using a Reference Set of `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]` (90 bytes):
-``` ascii-art
-D4                              # tag(20)
-   82                           # array(2)
-      A6                        # map(6)
-         41                     # bytes(1)
-            01                  # "\x01"
-         41                     # bytes(1)
-            02                  # "\x02"
-         41                     # bytes(1)
-            03                  # "\x03"
-         84                     # array(4)
-            41                  # bytes(1)
-               04               # "\x04"
-            41                  # bytes(1)
-               05               # "\x05"
-            41                  # bytes(1)
-               06               # "\x06"
-            18 2A               # unsigned(42)
-         41                     # bytes(1)
-            07                  # "\a"
-         F5                     # primitive(21)
-         41                     # bytes(1)
-            08                  # "\b"
-         38 29                  # negative(41)
-         41                     # bytes(1)
-            09                  # "\t"
-         83                     # array(3)
-            F4                  # primitive(20)
-            F6                  # primitive(22)
-            60                  # text(0)
-                                # ""
-         41                     # bytes(1)
-            0A                  # "\n"
-         8C                     # array(12)
-            00                  # unsigned(0)
-            01                  # unsigned(1)
-            17                  # unsigned(23)
-            18 18               # unsigned(24)
-            19 00FF             # unsigned(255)
-            19 0100             # unsigned(256)
-            19 FFFF             # unsigned(65535)
-            1A 00010000         # unsigned(65536)
-            1B 00000000FFFFFFFF # unsigned(4294967295)
-            1B 0000000100000000 # unsigned(4294967296)
-            1B 0001000000000000 # unsigned(281474976710656)
-            3B 0000FFFFFFFFFFFF # negative(281474976710655)
-      01                        # unsigned(1)
+## JSON Web Token
+
+Consider the following JSON Web Token [@!RFC7519], which natively is 149 bytes (line endings are not significant):
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiO
+iIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWR
+taW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZ
+geFONFh7HgQ
 ```
 
-JWT (149 bytes) `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ` converted to JSON (191):
+In a JSON encoding, the JWT would be 191 bytes (line endings are not significant):
+
 ``` json
-{"protected":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9","payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9","signature":"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"}
+{"protected":
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+"payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwib
+mFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9",
+"signature":
+"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh
+7HgQ"}
 ```
 
-JSCN (80 bytes) using a Reference Set of `[1,"payload","signature","protected","alg","HS256","sub","name","admin"]`:
+Using a Reference Set of `[1,"payload","signature","protected","alg","HS256","sub","name","admin"]`, the JSCN encoding would be 80 bytes.
+
 ``` ascii-art
 D4                                      # tag(20)
    82                                   # array(2)
@@ -360,11 +397,16 @@ D4                                      # tag(20)
             02                          # "\x02"
          D5                             # tag(21)
             58 20                       # bytes(32)
-               4C9540F793AB33B13670169BDF444C1EB1C37047F18E861981E14E34587B1E04 # "L\x95@\xF7\x93\xAB3\xB16p\x16\x9B\xDFDL\x1E\xB1\xC3pG\xF1\x8E\x86\x19\x81\xE1N4X{\x1E\x04"
+               4C9540F793AB33B13670169BDF444C1EB1C37047F18
+               E861981E14E34587B1E04 # "L\x95@\xF7\x93\xAB3
+               \xB16p\x16\x9B\xDFDL\x1E\xB1\xC3pG\xF1\x8E
+               \x86\x19\x81\xE1N4X{\x1E\x04"
       01                                # unsigned(1)
 ```
 
 # IANA Considerations
+
+## CBOR Tags
 
 The IANA is requested to assign the following tags from the "CBOR Tags" registry defined in RFC 7049 [@!RFC7049]:
 
@@ -374,27 +416,30 @@ The IANA is requested to assign the following tags from the "CBOR Tags" registry
 
 The tags to be assigned are described below.
 
-## CBOR Tag Registrations
-
 ```
 Tag             20 (Constrained JSON)
 Data Item       array
-Semantics       First value in the array is always a constrained JSON data
-                item encoded using JSCN, optionally followed by an integer
-                or array identifying any embedded references, and then an
-                optional array of whitespace hints if any.
+Semantics       The first value in the array is a constrained 
+                JSON data item encoded using JSCN, optionally 
+                followed by an integer or array identifying any 
+                embedded references, and then an optional array 
+                of whitespace hints (if any).
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
 Tag             31 (Upper Case Modifier)
 Data Item       multiple
-Semantics       Indicates that the data item following contains values
-                where the upper case is semantically important when 
-                interpreted in any UTF-8 string context.
+Semantics       Indicates that the data item following contains 
+                values where the upper case is semantically 
+                important when interpreted in a UTF-8 string 
+                context.
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 ```
 
+## JSCN Reference Sets Registry
+
+A future version of this document will request creation of a registry for JSCN Reference Sets. 
 
 # Security Considerations
 
@@ -404,8 +449,5 @@ TODO
 
 # Acknowledgements
 
-The author wishes to thank you in advance.
+Thanks to Carsten Bormann for his comments.
 
-# Notices
-
-TODO

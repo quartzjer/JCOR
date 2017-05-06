@@ -375,24 +375,28 @@
 
   <link href="#rfc.toc" rel="Contents"/>
 <link href="#rfc.section.1" rel="Chapter" title="1 Introduction"/>
-<link href="#rfc.section.1.1" rel="Chapter" title="1.1 Requirements Notations and Conventions"/>
-<link href="#rfc.section.1.2" rel="Chapter" title="1.2 Terminology"/>
+<link href="#rfc.section.1.1" rel="Chapter" title="1.1 Terminology"/>
 <link href="#rfc.section.2" rel="Chapter" title="2 CBOR Encoding"/>
-<link href="#rfc.section.2.1" rel="Chapter" title="2.1 Structures"/>
-<link href="#rfc.section.2.2" rel="Chapter" title="2.2 Simple Types"/>
-<link href="#rfc.section.2.3" rel="Chapter" title="2.3 Numbers"/>
-<link href="#rfc.section.2.4" rel="Chapter" title="2.4 Strings"/>
-<link href="#rfc.section.2.4.1" rel="Chapter" title="2.4.1 Base64 / Base16 Encoded"/>
+<link href="#rfc.section.2.1" rel="Chapter" title="2.1 Structured Types"/>
+<link href="#rfc.section.2.2" rel="Chapter" title="2.2 Primitive Types"/>
+<link href="#rfc.section.2.2.1" rel="Chapter" title="2.2.1 Boolean and Null"/>
+<link href="#rfc.section.2.2.2" rel="Chapter" title="2.2.2 Numbers"/>
+<link href="#rfc.section.2.2.3" rel="Chapter" title="2.2.3 Strings"/>
 <link href="#rfc.section.3" rel="Chapter" title="3 Reference Sets"/>
 <link href="#rfc.section.4" rel="Chapter" title="4 Whitespace Hints"/>
 <link href="#rfc.section.5" rel="Chapter" title="5 Constrained API"/>
 <link href="#rfc.section.6" rel="Chapter" title="6 Examples"/>
+<link href="#rfc.section.6.1" rel="Chapter" title="6.1 JSON"/>
+<link href="#rfc.section.6.1.1" rel="Chapter" title="6.1.1 Input"/>
+<link href="#rfc.section.6.1.2" rel="Chapter" title="6.1.2 Optimized JSCN Encoding"/>
+<link href="#rfc.section.6.1.3" rel="Chapter" title="6.1.3 Unoptimized JSCN Encoding"/>
+<link href="#rfc.section.6.2" rel="Chapter" title="6.2 JSON Web Token"/>
 <link href="#rfc.section.7" rel="Chapter" title="7 IANA Considerations"/>
-<link href="#rfc.section.7.1" rel="Chapter" title="7.1 CBOR Tag Registrations"/>
+<link href="#rfc.section.7.1" rel="Chapter" title="7.1 CBOR Tags"/>
+<link href="#rfc.section.7.2" rel="Chapter" title="7.2 JSCN Reference Sets Registry"/>
 <link href="#rfc.section.8" rel="Chapter" title="8 Security Considerations"/>
 <link href="#rfc.references" rel="Chapter" title="9 Normative References"/>
 <link href="#rfc.appendix.A" rel="Chapter" title="A Acknowledgements"/>
-<link href="#rfc.appendix.B" rel="Chapter" title="B Notices"/>
 <link href="#rfc.authors" rel="Chapter"/>
 
 
@@ -401,9 +405,9 @@
 
   <meta name="dct.creator" content="Miller, J. and P. Saint-Andre" />
   <meta name="dct.identifier" content="urn:ietf:id:draft" />
-  <meta name="dct.issued" scheme="ISO8601" content="2017-5-4" />
-  <meta name="dct.abstract" content="This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  " />
-  <meta name="description" content="This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  " />
+  <meta name="dct.issued" scheme="ISO8601" content="2017-5-5" />
+  <meta name="dct.abstract" content="This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  " />
+  <meta name="description" content="This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  " />
 
 </head>
 
@@ -426,7 +430,7 @@
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">May 4, 2017</td>
+  <td class="right">May 5, 2017</td>
 </tr>
 
     	
@@ -439,7 +443,7 @@
   <h1 id="rfc.abstract">
   <a href="#rfc.abstract">Abstract</a>
 </h1>
-<p>This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  </p>
+<p>This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  </p>
 
   
   <hr class="noprint" />
@@ -447,24 +451,28 @@
   <ul class="toc">
 
   	<li>1.   <a href="#rfc.section.1">Introduction</a></li>
-<ul><li>1.1.   <a href="#rfc.section.1.1">Requirements Notations and Conventions</a></li>
-<li>1.2.   <a href="#rfc.section.1.2">Terminology</a></li>
+<ul><li>1.1.   <a href="#rfc.section.1.1">Terminology</a></li>
 </ul><li>2.   <a href="#rfc.section.2">CBOR Encoding</a></li>
-<ul><li>2.1.   <a href="#rfc.section.2.1">Structures</a></li>
-<li>2.2.   <a href="#rfc.section.2.2">Simple Types</a></li>
-<li>2.3.   <a href="#rfc.section.2.3">Numbers</a></li>
-<li>2.4.   <a href="#rfc.section.2.4">Strings</a></li>
-<ul><li>2.4.1.   <a href="#rfc.section.2.4.1">Base64 / Base16 Encoded</a></li>
+<ul><li>2.1.   <a href="#rfc.section.2.1">Structured Types</a></li>
+<li>2.2.   <a href="#rfc.section.2.2">Primitive Types</a></li>
+<ul><li>2.2.1.   <a href="#rfc.section.2.2.1">Boolean and Null</a></li>
+<li>2.2.2.   <a href="#rfc.section.2.2.2">Numbers</a></li>
+<li>2.2.3.   <a href="#rfc.section.2.2.3">Strings</a></li>
 </ul></ul><li>3.   <a href="#rfc.section.3">Reference Sets</a></li>
 <li>4.   <a href="#rfc.section.4">Whitespace Hints</a></li>
 <li>5.   <a href="#rfc.section.5">Constrained API</a></li>
 <li>6.   <a href="#rfc.section.6">Examples</a></li>
-<li>7.   <a href="#rfc.section.7">IANA Considerations</a></li>
-<ul><li>7.1.   <a href="#rfc.section.7.1">CBOR Tag Registrations</a></li>
+<ul><li>6.1.   <a href="#rfc.section.6.1">JSON</a></li>
+<ul><li>6.1.1.   <a href="#rfc.section.6.1.1">Input</a></li>
+<li>6.1.2.   <a href="#rfc.section.6.1.2">Optimized JSCN Encoding</a></li>
+<li>6.1.3.   <a href="#rfc.section.6.1.3">Unoptimized JSCN Encoding</a></li>
+</ul><li>6.2.   <a href="#rfc.section.6.2">JSON Web Token</a></li>
+</ul><li>7.   <a href="#rfc.section.7">IANA Considerations</a></li>
+<ul><li>7.1.   <a href="#rfc.section.7.1">CBOR Tags</a></li>
+<li>7.2.   <a href="#rfc.section.7.2">JSCN Reference Sets Registry</a></li>
 </ul><li>8.   <a href="#rfc.section.8">Security Considerations</a></li>
 <li>9.   <a href="#rfc.references">Normative References</a></li>
 <li>Appendix A.   <a href="#rfc.appendix.A">Acknowledgements</a></li>
-<li>Appendix B.   <a href="#rfc.appendix.B">Notices</a></li>
 <li><a href="#rfc.authors">Authors' Addresses</a></li>
 
 
@@ -472,48 +480,49 @@
 
   <h1 id="rfc.section.1"><a href="#rfc.section.1">1.</a> <a href="#introduction" id="introduction">Introduction</a></h1>
 <p id="rfc.section.1.p.1">Although JavaScript Object Notation (JSON) <a href="#RFC7159">[RFC7159]</a> has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see <a href="#RFC7228">[RFC7228]</a>).  </p>
-<p id="rfc.section.1.p.2">This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) <a href="#RFC7049">[RFC7049]</a> that preserve all semantic information, such that the original JSON string can always be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can always be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  </p>
-<p id="rfc.section.1.p.3">A primary goal of JSCN is to enable the use of all JOSE standards (<a href="#RFC7515">[RFC7515]</a>, <a href="#RFC7516">[RFC7516]</a>, <a href="#RFC7517">[RFC7517]</a>, <a href="#RFC7518">[RFC7518]</a>, <a href="#RFC7519">[RFC7519]</a>) unmodified in constrained environments and to enable the adoption of OpenID Connect as an identity management solution for the Internet of Things.  </p>
+<p id="rfc.section.1.p.2">This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) <a href="#RFC7049">[RFC7049]</a> that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.  </p>
+<p id="rfc.section.1.p.3">A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE) standards (<a href="#RFC7515">[RFC7515]</a>, <a href="#RFC7516">[RFC7516]</a>, <a href="#RFC7517">[RFC7517]</a>, <a href="#RFC7518">[RFC7518]</a>, <a href="#RFC7519">[RFC7519]</a>) to be used unmodified in constrained environments.  One result is that OpenID Connect (which is based on JOSE) can be adopted as an identity management solution for the Internet of Things.  </p>
 <p id="rfc.section.1.p.4">JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.  </p>
 <p id="rfc.section.1.p.5">All transcoding software must operate on a UTF-8 JSON string whenever complete round-trip compatibilityy to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of <samp>JSON.parse()</samp> in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).  </p>
 <p id="rfc.section.1.p.6">A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).  </p>
 <p id="rfc.section.1.p.7">This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines basic API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has encoding differences.  </p>
-<h1 id="rfc.section.1.1"><a href="#rfc.section.1.1">1.1.</a> <a href="#requirements-notations-and-conventions" id="requirements-notations-and-conventions">Requirements Notations and Conventions</a></h1>
-<p id="rfc.section.1.1.p.1">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 <a href="#RFC2119">[RFC2119]</a>.  </p>
-<h1 id="rfc.section.1.2"><a href="#rfc.section.1.2">1.2.</a> <a href="#terminology" id="terminology">Terminology</a></h1>
-<p id="rfc.section.1.2.p.1">This specification uses the following terms: </p>
+<h1 id="rfc.section.1.1"><a href="#rfc.section.1.1">1.1.</a> <a href="#terminology" id="terminology">Terminology</a></h1>
+<p id="rfc.section.1.1.p.1">Many terms used in this document are defined in the specifications for JSON <a href="#RFC7159">[RFC7159]</a> and CBOR <a href="#RFC7049">[RFC7049]</a>. This specification defines the following additional terms: </p>
 <p/>
 
 <ul>
-  <li>Reference <ul><li>Used within JSCN data to refer to well-known UTF-8 strings by using a CBOR byte string of length one, where the byte value is the reference lookup id.</li></ul></li>
-  <li>Reference Set <ul><li>A CBOR array of UTF-8 strings that are used to replace any reference within any JSCN data, the Reference id is the array offset to the replacement string, and the first position in the array identifies that Reference Set.</li></ul></li>
+  <li>Reference <ul><li>A pointer within JSCN data that refers to a well-known UTF-8 string by using a CBOR byte string of length one, where the byte value is the lookup identifier for the Reference.</li></ul></li>
+  <li>Reference Set <ul><li>A CBOR array of UTF-8 strings that are used to replace any Reference within any JSCN data, where the Reference identifier is the array offset to the replacement string and the first position in the array identifies the Reference Set.</li></ul></li>
   <li>Whitespace Hints <ul><li>A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (, <samp>\n</samp>, <samp>\r</samp>, and <samp>\t</samp>) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.</li></ul></li>
 </ul>
 
 <p> </p>
+<p id="rfc.section.1.1.p.3">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 <a href="#RFC2119">[RFC2119]</a>.  </p>
 <h1 id="rfc.section.2"><a href="#rfc.section.2">2.</a> <a href="#cbor-encoding" id="cbor-encoding">CBOR Encoding</a></h1>
-<h1 id="rfc.section.2.1"><a href="#rfc.section.2.1">2.1.</a> <a href="#structures" id="structures">Structures</a></h1>
-<p id="rfc.section.2.1.p.1">Direct serialization of JSON structures to the CBOR major object/array types 4 and 5, ordering of key/value pairs in maps/objects must always be preserved.  </p>
-<h1 id="rfc.section.2.2"><a href="#rfc.section.2.2">2.2.</a> <a href="#simple-types" id="simple-types">Simple Types</a></h1>
-<p id="rfc.section.2.2.p.1">JSON <samp>true</samp>, <samp>false</samp>, and <samp>null</samp> are serialized to their CBOR type 7 simple values.  </p>
-<h1 id="rfc.section.2.3"><a href="#rfc.section.2.3">2.3.</a> <a href="#numbers" id="numbers">Numbers</a></h1>
-<p id="rfc.section.2.3.p.1">Any JSON exponent value is encoded as a CBOR exponent (tag 4), if the contained <samp>e</samp> symbol is upper-case in JSON the case tag (31) must also be used.  </p>
-<p id="rfc.section.2.3.p.2">JSON numbers should be encoded as CBOR Integers (type 0 and 1) or Floats (type 7) and then tested for compatibility by round-tripping them back to a JSON number, any remaining incompatible numbers are encoded as Bigfloats (tag 5).  </p>
-<h1 id="rfc.section.2.4"><a href="#rfc.section.2.4">2.4.</a> <a href="#strings" id="strings">Strings</a></h1>
-<p id="rfc.section.2.4.p.1">Strings are preserved as a UTF-8 string (type 3), they are always the bare escaped JSON string values and must not have been un- and re-escaped unless resticted by operating in a limited parsed context without any JSON compatibility guarantees.  </p>
-<h1 id="rfc.section.2.4.1"><a href="#rfc.section.2.4.1">2.4.1.</a> <a href="#base64--base16-encoded" id="base64--base16-encoded">Base64 / Base16 Encoded</a></h1>
-<p id="rfc.section.2.4.1.p.1">All JSON strings must also be round-trip tested for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them, if identical byte strings result the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23/31).  </p>
-<p id="rfc.section.2.4.1.p.2">The resulting decoded byte string must be introspected to see if it begins with a JSON structure byte of '{' or '['.  It is then round-trip tested as a possible JSON object/array to be encoded more efficiently into a CBOR data item instead of a byte string (this pattern is common in JOSE).  </p>
+<p id="rfc.section.2.p.1">JSCN encodes JSON data types to CBOR data types as described in the following sections.  </p>
+<h1 id="rfc.section.2.1"><a href="#rfc.section.2.1">2.1.</a> <a href="#structured-types" id="structured-types">Structured Types</a></h1>
+<p id="rfc.section.2.1.p.1">JSON defines two structured types: arrays and objects.  These are serialized to CBOR major type 4 (array) and type 5 (map), respectively.  Ordering of key/value pairs in JSON objects and CBOR maps MUST be preserved.  </p>
+<h1 id="rfc.section.2.2"><a href="#rfc.section.2.2">2.2.</a> <a href="#primitive-types" id="primitive-types">Primitive Types</a></h1>
+<h1 id="rfc.section.2.2.1"><a href="#rfc.section.2.2.1">2.2.1.</a> <a href="#boolean-and-null" id="boolean-and-null">Boolean and Null</a></h1>
+<p id="rfc.section.2.2.1.p.1">The JSON literal names <samp>false</samp>, <samp>true</samp>, and <samp>null</samp> are serialized to the CBOR major type 7 simple values 20, 21, and 22 respectively.  </p>
+<h1 id="rfc.section.2.2.2"><a href="#rfc.section.2.2.2">2.2.2.</a> <a href="#numbers" id="numbers">Numbers</a></h1>
+<p id="rfc.section.2.2.2.p.1">A JSCN encoder attempts to encode a JSON number as a CBOR unsigned integer (type 0), negative integer (type 1), or float (type 7) and then test for compatibility by round-tripping the CBOR data item back to a JSON number.  If the resulting JSON number is not equivalent to the input number, the encoder MUST instead encode it as a CBOR Bigfloat (tag 5).  </p>
+<p id="rfc.section.2.2.2.p.2">The JSON exponent value (if any) is encoded as a CBOR exponent (tag 4).  If the contained <samp>e</samp> symbol is upper case in JSON, the "Upper Case Modifier" tag defined below MUST be included.  </p>
+<h1 id="rfc.section.2.2.3"><a href="#rfc.section.2.2.3">2.2.3.</a> <a href="#strings" id="strings">Strings</a></h1>
+<p id="rfc.section.2.2.3.p.1">A JSON string is encoded as a CBOR UTF-8 string (type 3), i.e., as a series of UTF-8 <a href="#RFC3629">[RFC3629]</a> characters (e.g., the word "one" is encoded as "6F6E65").  JSON string values MUST NOT be un-escaped and re-escaped unless the JSCN encoder is restricted by operating in a limited parsed context without any JSON compatibility guarantees.  </p>
+<h1 id="rfc.section.2.2.3.1"><a href="#rfc.section.2.2.3.1">2.2.3.1.</a> <a href="#base64--base16-encoded" id="base64--base16-encoded">Base64 / Base16 Encoded</a></h1>
+<p id="rfc.section.2.2.3.1.p.1">A JSCN encoder MUST round-trip test all JSON strings for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them.  If identical byte strings result, the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined below MUST be included if the hexadecimal letters A-F are upper case in the original JSON string.  </p>
+<p id="rfc.section.2.2.3.1.p.2">A JSCN encoder MUST perform introspection on the resulting decoded byte string to determine if it begins with a JSON structure byte of '{' or '['.  The encoder SHOULD then round-trip test the string as a possible JSON object or array so that it can encode the string more efficiently into a CBOR data item instead of a byte string (this pattern is common in the JOSE specification).  </p>
 <h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#reference-sets" id="reference-sets">Reference Sets</a></h1>
 <p/>
 
 <ul>
-  <li>The Constrained JSON tag is followed by an array who's second item identifies the Reference Set used in the data, it is either the id value or an array that defines an inline Reference Set.</li>
-  <li>Reference Sets are themselves identified with unique integer ids that must have a known mapping for apps using them, a registry will be created to assign the integer ids to public well-known reference sets.</li>
-  <li>A references definition is itself encoded as a JSCN array where the first value is the references id followed by all of the UTF-8 string keys, their position in the array is the byte value they are replaced with.</li>
-  <li>Reference Sets may be combined when its JSCN definition also contains another Reference Set id, any byte strings in the definition array are then replaced with the key from the given references.</li>
-  <li>Any JSON UTF-8 strings (keys or values) are first checked against all active references (if any) for possible replacement, any replacement is always a CBOR byte string (type 2) of length 1, the single byte represents the index value of the key in the references array from 1-255, value 0 and byte lengths &gt;1 are currently reserved.</li>
-  <li>When generating any JSON values from CBOR and a CBOR byte string (type 2) is encountered the single byte value must match the array offset of the active references to be used as the replacement for that byte string.</li>
+  <li>The "Constrained JSON" tag is followed by an array whose second item identifies the Reference Set used in the data.  This is either a Reference Set identifier or an array that defines an inline Reference Set.</li>
+  <li>A Reference Set identifier is a unique integer that maps to a Reference Set known to applications using the set.  Public, well-known reference sets can be registered as described in the IANA Considerations section of this document.</li>
+  <li>A Reference Set definition is encoded as a JSCN array, where the first value is the Reference Set identifier followed by all of the UTF-8 string keys.  A key's position in the array is the byte value with which it is replaced.</li>
+  <li>A Reference Set can include another Reference Set by encoding the second set's identifer in the JSCN array that defines the first Reference Set.  Any byte strings in the definition array are then replaced with the key from the references contained in the second Reference Set.</li>
+  <li>JSON UTF-8 strings representing keys or values are first checked against all active references (if any) for possible replacement.  A replacement is always a CBOR byte string (type 2) of length 1, where the single byte represents the index value of the key in the references array from 1-255.  Value 0 and byte lengths greater than 1 are reserved for future use.</li>
+  <li>When a JSCN decoder generates JSON values from CBOR and it encounters a CBOR byte string (type 2), single byte value MUST match the array offset of the active references to be used as the replacement for that byte string.</li>
 </ul>
 
 <p> </p>
@@ -521,20 +530,22 @@
 <p/>
 
 <ul>
-  <li>Whitespace hints are an array that contains only integers which indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.</li>
+  <li>Whitespace hints are an array containing integers that indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.</li>
   <li>Each offset integer is relative to the position of the previous offset such that all integers are of small values.</li>
-  <li>Any negative integer offset indicates a single space character (0x20) at the offset of the positive value of that integer.</li>
-  <li>All positive integer offsets are followed by another integer, positive values (0-23) indicate a whitespace string in a pre-defined lookup table, negative values are the number of space characters (0x20) to repeat.</li>
+  <li>A negative integer offset indicates a single ASCII space character (0x20) at the offset of the positive value of that integer.</li>
+  <li>An unsigned integer offset is followed by another integer, where unsigned values (0-23) indicate a whitespace string in a pre-defined lookup table and negative values specify the number of space characters (0x20) to repeat.</li>
   <li>When adding back any whitespace to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position.</li>
 </ul>
 
 <p> </p>
 <p id="rfc.section.4.p.2">(TODO embed whitespace lookup table and examples) </p>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#constrained-api" id="constrained-api">Constrained API</a></h1>
-<p id="rfc.section.5.p.1">When the JSCN is being used directly by a software library all access to the contained data values must have both a native type and JSON-string API available so that a constrained application can choose either regardless of how the CBOR types represent the data.  </p>
-<p id="rfc.section.5.p.2">For example, when a JSON string value is encoded in JSCN as a CBOR base64url tag plus byte string, the application must be able to access either the original base64url string value or the CBOR binary byte string as needed by context, but should not alter behavior based on which way the value is encoded in CBOR.  </p>
+<p id="rfc.section.5.p.1">In order to ease the use of JSCN in contrained environments, an implementation should make data values available both as native types and as JSON strings; this enables a constrained application to choose either format regardless of how the CBOR types represent the data.  </p>
+<p id="rfc.section.5.p.2">For example, when a JSON string value is encoded in JSCN as a CBOR base64url tag plus byte string, a constrained application can then access either the original base64url string value or the CBOR binary byte string as needed, but should not alter behavior based on which way the value is encoded in CBOR.  </p>
 <h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#examples" id="examples">Examples</a></h1>
-<p id="rfc.section.6.p.1">JSON (318 bytes) to JSCN (187 bytes) with no references and whitespace preserved: </p>
+<h1 id="rfc.section.6.1"><a href="#rfc.section.6.1">6.1.</a> <a href="#json" id="json">JSON</a></h1>
+<h1 id="rfc.section.6.1.1"><a href="#rfc.section.6.1.1">6.1.1.</a> <a href="#input" id="input">Input</a></h1>
+<p id="rfc.section.6.1.1.p.1">Consider the following JSON as input to a JSCN encoder.  </p>
 <pre>
 {
   "map": "value",
@@ -567,6 +578,60 @@
   ]
 }
 </pre>
+<h1 id="rfc.section.6.1.2"><a href="#rfc.section.6.1.2">6.1.2.</a> <a href="#optimized-jscn-encoding" id="optimized-jscn-encoding">Optimized JSCN Encoding</a></h1>
+<p id="rfc.section.6.1.2.p.1">An optimized encoding would remove whitespace and use a Reference Set. Here the reference would be: </p>
+<p><samp>[1,"map","value","array","one","two","three","bool","neg","simple","ints"]</samp> </p>
+<p id="rfc.section.6.1.2.p.3">The resulting JSCN encoding is 90 bytes compared to 318 bytes for the JSON input.  </p>
+<pre>
+D4                              # tag(20)
+   82                           # array(2)
+      A6                        # map(6)
+         41                     # bytes(1)
+            01                  # "\x01"
+         41                     # bytes(1)
+            02                  # "\x02"
+         41                     # bytes(1)
+            03                  # "\x03"
+         84                     # array(4)
+            41                  # bytes(1)
+               04               # "\x04"
+            41                  # bytes(1)
+               05               # "\x05"
+            41                  # bytes(1)
+               06               # "\x06"
+            18 2A               # unsigned(42)
+         41                     # bytes(1)
+            07                  # "\a"
+         F5                     # primitive(21)
+         41                     # bytes(1)
+            08                  # "\b"
+         38 29                  # negative(41)
+         41                     # bytes(1)
+            09                  # "\t"
+         83                     # array(3)
+            F4                  # primitive(20)
+            F6                  # primitive(22)
+            60                  # text(0)
+                                # ""
+         41                     # bytes(1)
+            0A                  # "\n"
+         8C                     # array(12)
+            00                  # unsigned(0)
+            01                  # unsigned(1)
+            17                  # unsigned(23)
+            18 18               # unsigned(24)
+            19 00FF             # unsigned(255)
+            19 0100             # unsigned(256)
+            19 FFFF             # unsigned(65535)
+            1A 00010000         # unsigned(65536)
+            1B 00000000FFFFFFFF # unsigned(4294967295)
+            1B 0000000100000000 # unsigned(4294967296)
+            1B 0001000000000000 # unsigned(281474976710656)
+            3B 0000FFFFFFFFFFFF # negative(281474976710655)
+      01                        # unsigned(1)
+</pre>
+<h1 id="rfc.section.6.1.3"><a href="#rfc.section.6.1.3">6.1.3.</a> <a href="#unoptimized-jscn-encoding" id="unoptimized-jscn-encoding">Unoptimized JSCN Encoding</a></h1>
+<p id="rfc.section.6.1.3.p.1">An unoptimized encoding would not use a Reference Set and would preserve whitespace. The unoptimized encoding would reduce the data from the 318 bytes (JSON) to 187 bytes (JSCN).  </p>
 <pre>
 D4                              # tag(20)
    83                           # array(3)
@@ -680,60 +745,25 @@ D4                              # tag(20)
          01                     # unsigned(1)
          00                     # unsigned(0)
 </pre>
-<p id="rfc.section.6.p.2">With no whitespace and using a Reference Set of <samp>[1,"map","value","array","one","two","three","bool","neg","simple","ints"]</samp> (90 bytes): </p>
+<h1 id="rfc.section.6.2"><a href="#rfc.section.6.2">6.2.</a> <a href="#json-web-token" id="json-web-token">JSON Web Token</a></h1>
+<p id="rfc.section.6.2.p.1">Consider the following JSON Web Token <a href="#RFC7519">[RFC7519]</a>, which natively is 149 bytes (line endings are not significant): </p>
 <pre>
-D4                              # tag(20)
-   82                           # array(2)
-      A6                        # map(6)
-         41                     # bytes(1)
-            01                  # "\x01"
-         41                     # bytes(1)
-            02                  # "\x02"
-         41                     # bytes(1)
-            03                  # "\x03"
-         84                     # array(4)
-            41                  # bytes(1)
-               04               # "\x04"
-            41                  # bytes(1)
-               05               # "\x05"
-            41                  # bytes(1)
-               06               # "\x06"
-            18 2A               # unsigned(42)
-         41                     # bytes(1)
-            07                  # "\a"
-         F5                     # primitive(21)
-         41                     # bytes(1)
-            08                  # "\b"
-         38 29                  # negative(41)
-         41                     # bytes(1)
-            09                  # "\t"
-         83                     # array(3)
-            F4                  # primitive(20)
-            F6                  # primitive(22)
-            60                  # text(0)
-                                # ""
-         41                     # bytes(1)
-            0A                  # "\n"
-         8C                     # array(12)
-            00                  # unsigned(0)
-            01                  # unsigned(1)
-            17                  # unsigned(23)
-            18 18               # unsigned(24)
-            19 00FF             # unsigned(255)
-            19 0100             # unsigned(256)
-            19 FFFF             # unsigned(65535)
-            1A 00010000         # unsigned(65536)
-            1B 00000000FFFFFFFF # unsigned(4294967295)
-            1B 0000000100000000 # unsigned(4294967296)
-            1B 0001000000000000 # unsigned(281474976710656)
-            3B 0000FFFFFFFFFFFF # negative(281474976710655)
-      01                        # unsigned(1)
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiO
+iIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWR
+taW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZ
+geFONFh7HgQ
 </pre>
-<p id="rfc.section.6.p.3">JWT (149 bytes) <samp>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ</samp> converted to JSON (191): </p>
+<p id="rfc.section.6.2.p.2">In a JSON encoding, the JWT would be 191 bytes (line endings are not significant): </p>
 <pre>
-{"protected":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9","payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9","signature":"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"}
+{"protected":
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+"payload":"eyJzdWIiOiIxMjM0NTY3ODkwIiwib
+mFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9",
+"signature":
+"TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh
+7HgQ"}
 </pre>
-<p id="rfc.section.6.p.4">JSCN (80 bytes) using a Reference Set of <samp>[1,"payload","signature","protected","alg","HS256","sub","name","admin"]</samp>: </p>
+<p id="rfc.section.6.2.p.3">Using a Reference Set of <samp>[1,"payload","signature","protected","alg","HS256","sub","name","admin"]</samp>, the JSCN encoding would be 80 bytes.  </p>
 <pre>
 D4                                      # tag(20)
    82                                   # array(2)
@@ -770,11 +800,15 @@ D4                                      # tag(20)
             02                          # "\x02"
          D5                             # tag(21)
             58 20                       # bytes(32)
-               4C9540F793AB33B13670169BDF444C1EB1C37047F18E861981E14E34587B1E04 # "L\x95@\xF7\x93\xAB3\xB16p\x16\x9B\xDFDL\x1E\xB1\xC3pG\xF1\x8E\x86\x19\x81\xE1N4X{\x1E\x04"
+               4C9540F793AB33B13670169BDF444C1EB1C37047F18
+               E861981E14E34587B1E04 # "L\x95@\xF7\x93\xAB3
+               \xB16p\x16\x9B\xDFDL\x1E\xB1\xC3pG\xF1\x8E
+               \x86\x19\x81\xE1N4X{\x1E\x04"
       01                                # unsigned(1)
 </pre>
 <h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#iana-considerations" id="iana-considerations">IANA Considerations</a></h1>
-<p id="rfc.section.7.p.1">The IANA is requested to assign the following tags from the "CBOR Tags" registry defined in RFC 7049 <a href="#RFC7049">[RFC7049]</a>: </p>
+<h1 id="rfc.section.7.1"><a href="#rfc.section.7.1">7.1.</a> <a href="#cbor-tags" id="cbor-tags">CBOR Tags</a></h1>
+<p id="rfc.section.7.1.p.1">The IANA is requested to assign the following tags from the "CBOR Tags" registry defined in RFC 7049 <a href="#RFC7049">[RFC7049]</a>: </p>
 <p/>
 
 <ul>
@@ -783,26 +817,29 @@ D4                                      # tag(20)
 </ul>
 
 <p> </p>
-<p id="rfc.section.7.p.3">The tags to be assigned are described below.  </p>
-<h1 id="rfc.section.7.1"><a href="#rfc.section.7.1">7.1.</a> <a href="#cbor-tag-registrations" id="cbor-tag-registrations">CBOR Tag Registrations</a></h1>
+<p id="rfc.section.7.1.p.3">The tags to be assigned are described below.  </p>
 <pre>
 Tag             20 (Constrained JSON)
 Data Item       array
-Semantics       First value in the array is always a constrained JSON data
-                item encoded using JSCN, optionally followed by an integer
-                or array identifying any embedded references, and then an
-                optional array of whitespace hints if any.
+Semantics       The first value in the array is a constrained 
+                JSON data item encoded using JSCN, optionally 
+                followed by an integer or array identifying any 
+                embedded references, and then an optional array 
+                of whitespace hints (if any).
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller &lt;jeremie.miller@gmail.com&gt;
 
 Tag             31 (Upper Case Modifier)
 Data Item       multiple
-Semantics       Indicates that the data item following contains values
-                where the upper case is semantically important when 
-                interpreted in any UTF-8 string context.
+Semantics       Indicates that the data item following contains 
+                values where the upper case is semantically 
+                important when interpreted in a UTF-8 string 
+                context.
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller &lt;jeremie.miller@gmail.com&gt;
 </pre>
+<h1 id="rfc.section.7.2"><a href="#rfc.section.7.2">7.2.</a> <a href="#jscn-reference-sets-registry" id="jscn-reference-sets-registry">JSCN Reference Sets Registry</a></h1>
+<p id="rfc.section.7.2.p.1">A future version of this document will request creation of a registry for JSCN Reference Sets.  </p>
 <h1 id="rfc.section.8"><a href="#rfc.section.8">8.</a> <a href="#security-considerations" id="security-considerations">Security Considerations</a></h1>
 <p id="rfc.section.8.p.1">TODO </p>
 <h1 id="rfc.references"><a href="#rfc.references">9.</a> Normative References</h1>
@@ -813,6 +850,12 @@ Contact         Jeremie Miller &lt;jeremie.miller@gmail.com&gt;
         <b id="RFC2119">[RFC2119]</b>
       </td>
       <td class="top"><a>Bradner, S.</a>, "<a href="http://tools.ietf.org/html/rfc2119">Key words for use in RFCs to Indicate Requirement Levels</a>", BCP 14, RFC 2119, DOI 10.17487/RFC2119, March 1997.</td>
+    </tr>
+    <tr>
+      <td class="reference">
+        <b id="RFC3629">[RFC3629]</b>
+      </td>
+      <td class="top"><a>Yergeau, F.</a>, "<a href="http://tools.ietf.org/html/rfc3629">UTF-8, a transformation format of ISO 10646</a>", STD 63, RFC 3629, DOI 10.17487/RFC3629, November 2003.</td>
     </tr>
     <tr>
       <td class="reference">
@@ -865,9 +908,7 @@ Contact         Jeremie Miller &lt;jeremie.miller@gmail.com&gt;
   </tbody>
 </table>
 <h1 id="rfc.appendix.A"><a href="#rfc.appendix.A">Appendix A.</a> <a href="#acknowledgements" id="acknowledgements">Acknowledgements</a></h1>
-<p id="rfc.section.A.p.1">The author wishes to thank you in advance.  </p>
-<h1 id="rfc.appendix.B"><a href="#rfc.appendix.B">Appendix B.</a> <a href="#notices" id="notices">Notices</a></h1>
-<p id="rfc.section.B.p.1">TODO </p>
+<p id="rfc.section.A.p.1">Thanks to Carsten Bormann for his comments.  </p>
 <h1 id="rfc.authors">
   <a href="#rfc.authors">Authors' Addresses</a>
 </h1>
