@@ -49,18 +49,20 @@ All transcoding software must operate on a UTF-8 JSON string whenever complete r
 
 A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 
-This specification does not currently provide for the CBOR byte strings to be canonical and only guarantees that the JSON byte strings before and after re-coding will be identical.  It also defines basic API rules for constrained software such that accessing the CBOR data values will provide a uniform view even if the underlying CBOR has encoding differences.
+The use of this specification can provide guarantees that the JSON byte strings before and after re-coding will be identical across implementations, but it does not currently require any resulting CBOR byte strings to also be canonical.  It also defines basic API rules for constrained software such that directly accessing the CBOR data values will provide a uniform view to an application even if the underlying CBOR has been re-coded in various ways.
 
 ## Terminology
 
 Many terms used in this document are defined in the specifications for JSON [@!RFC7159] and CBOR [@!RFC7049]. This specification defines the following additional terms:
 
+- Constrained JSON Tag
+  - The CBOR tag registered in this specification to indicate an array that contains JSON data encoded as CBOR according to this specification.
 - Reference
   - A pointer within JSCN data that refers to a well-known UTF-8 string by using a CBOR byte string of length one, where the byte value is the lookup identifier for the Reference.
 - Reference Set
   - A CBOR array of UTF-8 strings that are used to replace any Reference within any JSCN data, where the Reference identifier is the array offset to the replacement string and the first position in the array identifies the Reference Set.
-- Whitespace Hints
-  - A CBOR array of integers that indicate positional offsets and types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
+- Constrained Hints
+  - A CBOR array of integers that indicate positional offsets and hints for unicode escapes of strings or types of JSON whitespace strings (` `, `\n`, `\r`, and `\t`) for structures such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
 
 The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL NOT**", "**SHOULD**", "**SHOULD NOT**", "**RECOMMENDED**", "**MAY**", and "**OPTIONAL**" in this document are to be interpreted as described in RFC 2119 [@!RFC2119].
 
@@ -86,7 +88,7 @@ The JSON exponent value (if any) is encoded as a CBOR exponent (tag 4).  If the 
 
 ### Strings
 
-A JSON string is encoded as a CBOR UTF-8 string (type 3), i.e., as a series of UTF-8 [@!RFC3629] characters (e.g., the word "one" is encoded as "6F6E65").  JSON string values MUST NOT be un-escaped and re-escaped unless the JSCN encoder is restricted by operating in a limited parsed context without any JSON compatibility guarantees.
+A JSON string is normally encoded as an un-escaped CBOR UTF-8 string (type 3), i.e., as a series of UTF-8 [@!RFC3629] characters (e.g., the word "one" is encoded as "6F6E65") without any backspace escaping for control or unicode characters.
 
 #### Base64 / Base16 Encoded
 
@@ -96,22 +98,39 @@ A JSCN encoder MUST perform introspection on the resulting decoded byte string t
 
 # Reference Sets
 
-* The "Constrained JSON" tag is followed by an array whose second item identifies the Reference Set used in the data.  This is either a Reference Set identifier or an array that defines an inline Reference Set.
+* The Constrained JSON Tag is followed by an array whose second item identifies the Reference Set used in the data.  This is either a Reference Set identifier or an array that defines an inline Reference Set.
 * A Reference Set identifier is a unique integer that maps to a Reference Set known to applications using the set.  Public, well-known reference sets can be registered as described in the IANA Considerations section of this document.
 * A Reference Set definition is encoded as a JSCN array, where the first value is the Reference Set identifier followed by all of the UTF-8 string keys.  A key's position in the array is the byte value with which it is replaced.
 * A Reference Set can include another Reference Set by encoding the second set's identifer in the JSCN array that defines the first Reference Set.  Any byte strings in the definition array are then replaced with the key from the references contained in the second Reference Set.
 * JSON UTF-8 strings representing keys or values are first checked against all active references (if any) for possible replacement.  A replacement is always a CBOR byte string (type 2) of length 1, where the single byte represents the index value of the key in the references array from 1-255.  Value 0 and byte lengths greater than 1 are reserved for future use.
 * When a JSCN decoder generates JSON values from CBOR and it encounters a CBOR byte string (type 2), single byte value MUST match the array offset of the active references to be used as the replacement for that byte string.
 
-# Whitespace Hints
+# Canonical Form
 
-* Whitespace hints are an array containing integers that indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.
+This specification directly supports use-cases such as JSON Web Tokens ([@!RFC7518]) where the canonical form of UTF-8 JSON strings must always be available for validation.  This is accomplished by optionally including any additional information to reproduce the exact UTF-8 string as part of the containing Constrained JSON Tag.
+
+This additional information is not typically necessary as most API and JOSE generated JSON does not include any extra insignificant bytes.  Even when required, this additional information also takes a highly constrained form and is only additive to the contained CBOR data values such that they remain uniform to any constrained application.
+
+## Formatting-only Whitespace
+
+When a Constrained JSON tag is present and the first item in the tagged array is a CBOR structure (map or array), a third optional item in the tagged array is a set of whitespace hints for any non-structural whitespace contained in the original JSON object or array.
+
+* Whitespace hints are contianed in an array of integers that indicate offsets of the locations of whitespace in an original JSON string and lookup keys to what whitespace contents were there.
 * Each offset integer is relative to the position of the previous offset such that all integers are of small values.
 * A negative integer offset indicates a single ASCII space character (0x20) at the offset of the positive value of that integer.
 * An unsigned integer offset is followed by another integer, where unsigned values (0-23) indicate a whitespace string in a pre-defined lookup table and negative values specify the number of space characters (0x20) to repeat.
 * When adding back any whitespace to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position.
 
 (TODO embed whitespace lookup table and examples)
+
+## String Escaping
+
+JSON string values may contain escaped characters (as defined in Section 7 of [@!RFC7159]) that become un-escaped in the process of re-coding them into a CBOR UTF-8 string.  When the canonical form is being preserved and any escaped characters are detected in the process of converting them from JSON to CBOR, the string values MUST be individually tagged as Constrained JSON where the first element in the tagged array is the CBOR UTF-8 string value and the second value is an array of positional integers similar to the whitespace hints.
+
+When the position is an unsigned integer it indicates the UTF-8 character at that position is to be escaped with the `\uXXXX` form with lower-case hexadecimal characters.  When it is a negative integer it indicates that it is to be escaped with the `\X` form and must be in the set of JSON escaped control characters.
+
+When the original escaping in the `\uXXXX` form was with upper case hexadecimal characters the entire array MUST be tagged with Upper Case Modifier.  Although extremely rare/unlikely, if the original escaping contained mixed-case hexadecimal then the positional integer will instead itself be an array of length two with the position being the first element and a 4-byte UTF-8 string of the mixed-case hexadecimal value the second element.
+
 
 # Constrained API
 
@@ -162,7 +181,7 @@ Consider the following JSON as input to a JSCN encoder.
 
 ### Optimized JSCN Encoding
 
-An optimized encoding would remove whitespace and use a Reference Set. Here the reference would be:
+An optimized encoding would remove whitespace and use a Reference Set. Here the references would be:
 
 `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]`
 
@@ -423,7 +442,7 @@ Semantics       The first value in the array is a constrained
                 JSON data item encoded using JSCN, optionally 
                 followed by an integer or array identifying any 
                 embedded references, and then an optional array 
-                of whitespace hints (if any).
+                of canonical hints (if any).
 Reference       http://quartzjer.github.io/JSCN
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
@@ -449,5 +468,5 @@ TODO
 
 # Acknowledgements
 
-Thanks to Carsten Bormann for his comments.
+Thanks to Carsten Bormann and David Waite for their comments.
 
