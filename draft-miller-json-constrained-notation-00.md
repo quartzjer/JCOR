@@ -1,15 +1,14 @@
 % Title = "JSON Constrained Notation (JSCN)"
 % abbrev = "JSCN"
 % category = "std"
-% docName = "draft"
+% docName = "draft-miller-json-constrained-notation-00"
 % area = ""
 % workgroup = ""
-% ipr = "none"
+% ipr = "trust200902"
 %
 % keyword = ["JSON", "CBOR", "constrained", "JOSE", "JWT", "IoT"]
 %
 % [pi]
-% private = "Draft"
 % compact = "yes"
 % subcompact = "no"
 % tocdepth = "5"
@@ -27,8 +26,9 @@
 % initials="P."
 % surname="Saint-Andre"
 % fullname="Peter Saint-Andre"
+% organization="Filament"
 %   [author.address]
-%   email = "stpeter@jabber.org"
+%   email = "peter@filament.com"
 .# Abstract
 
 This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a standard set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can also be used by devices as a native data format, which can then be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
@@ -37,7 +37,7 @@ This specification addresses the challenges of using JavaScript Object Notation 
 
 # Introduction
 
-Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see [@!RFC7228]).
+Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see [@RFC7228]).
 
 This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
@@ -45,11 +45,11 @@ A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE
 
 JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
 
-All transcoding software must operate on a UTF-8 JSON string whenever complete round-trip compatibility to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
+All transcoding software MUST operate on a UTF-8 JSON string whenever complete round-trip compatibility to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
 
 A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 
-The use of this specification can ensure that a UTF-8 JSON string before and after re-coding will be byte-for-byte identical across implementations, whereas the CBOR encoding is not designed to have this property and may vary based on implementation choices and reference sets available.  There are basic API rules defined for constrained software such that directly accessing the CBOR data values will always provide a uniform view to an application across variations in the underlying CBOR representation.
+The use of this specification can ensure that a UTF-8 JSON string before and after re-coding will be byte-for-byte identical across implementations, whereas the CBOR encoding is not designed to have this property and MAY vary based on implementation choices and reference sets available.  There are basic API rules defined for constrained software such that directly accessing the CBOR data values will always provide a uniform view to an application across variations in the underlying CBOR representation.
 
 ## Terminology
 
@@ -141,7 +141,7 @@ D4                       # tag(20)
 
 # Canonical Form
 
-This specification directly supports use-cases such as JSON Web Tokens ([@!RFC7518]) where the canonical form of UTF-8 JSON strings must always be available for validation.  This is accomplished by optionally including any additional information to reproduce the exact UTF-8 string as an array of Canonical Hints included with the Constrained JSON Tag.
+This specification directly supports use-cases such as JSON Web Tokens ([@!RFC7518]) where the canonical form of UTF-8 JSON strings always needs to be available for validation.  This is accomplished by optionally including any additional information to reproduce the exact UTF-8 string as an array of Canonical Hints included with the Constrained JSON Tag.
 
 These hints are not typically necessary as most machine-generated JSON does not include any extra insignificant bytes by default, even when included they do not need to be processed unless the original canonical form is requested.  When required, these additional hints also take a highly constrained form and are independently additive to the contained CBOR data values such that those values remain uniform to any constrained application.
 
@@ -153,7 +153,7 @@ When a Constrained JSON tag is present and the first item in the tagged array is
 * Each offset integer is relative to the position of the previous offset such that all integers are of small values.
 * A negative integer offset indicates a single ASCII space character (0x20) at the offset of the positive value of that integer.
 * An unsigned integer offset is followed by another integer, where unsigned values (0-23) indicate a whitespace string in the pre-defined lookup table, and negative values specify the number of space characters (0x20) to repeat.
-* When re-inserting whitespace characters to a JSON string the array must be applied sequentially so that each new offset matches the original JSON string position.
+* When re-inserting whitespace characters to a JSON string, the array MUST be applied sequentially so that each new offset matches the original JSON string position.
 
 The following 24 whitespace character hexadecimal sequences are used as the shared reference lookup table by row (0-23) when processing whitespace hints.  This table is constructed to minimize the number of references commonly required while also allowing any possible whitespace character sequences to be identified.
 
@@ -186,16 +186,16 @@ The following 24 whitespace character hexadecimal sequences are used as the shar
 
 ## String Escapes
 
-JSON string values may contain escaped characters (as defined in Section 7 of [@!RFC7159]) that become un-escaped in the process of re-coding them into a CBOR UTF-8 string.  When the canonical form is being preserved and any escaped characters are detected in the process of converting them from JSON to CBOR, those string values MUST be individually tagged as Constrained JSON where the first element in the tagged array is the CBOR UTF-8 string value and the second value is an array of positional integers similar to the whitespace hints.
+JSON string values MAY contain escaped characters (as defined in Section 7 of [@!RFC7159]) that become un-escaped in the process of re-coding them into a CBOR UTF-8 string.  When the canonical form is being preserved and any escaped characters are detected in the process of converting them from JSON to CBOR, those string values MUST be individually tagged as Constrained JSON where the first element in the tagged array is the CBOR UTF-8 string value and the second value is an array of positional integers similar to the whitespace hints.
 
-When the position is an unsigned integer it indicates the UTF-8 character at that position is to be escaped with the `\uXXXX` form with lower-case hexadecimal characters.  When it is a negative integer it indicates that it is to be escaped with the `\X` form and must be in the set of JSON escaped control characters.
+When the position is an unsigned integer it indicates the UTF-8 character at that position is to be escaped with the `\uXXXX` form with lower-case hexadecimal characters.  When it is a negative integer it indicates that it is to be escaped with the `\X` form and MUST be in the set of JSON escaped control characters.
 
-When the original escaping in the `\uXXXX` form was with upper case hexadecimal characters the entire array MUST be tagged with Upper Case Modifier.  Although extremely rare/unlikely, if the original escaping contained mixed-case hexadecimal then the positional integer will instead itself be an array of length two with the position being the first element and a 4-byte UTF-8 string of the mixed-case hexadecimal value the second element.
+When the original escaping in the `\uXXXX` form was with upper case hexadecimal characters the entire array MUST be tagged with Upper Case Modifier.  In the unlikely case that the original escaping contained mixed-case hexadecimal, then the positional integer will instead itself be an array of length two with the position being the first element and a 4-byte UTF-8 string of the mixed-case hexadecimal value being the second element.
 
 
 # Constrained API
 
-In order to ease the use of JSCN in constrained environments, an implementation should make data values available both as native CBOR types and as JSON strings; this enables a constrained application to choose either format regardless of how the data is represented in CBOR.
+In order to ease the use of JSCN in constrained environments, an implementation SHOULD make data values available both as native CBOR types and as JSON strings; this enables a constrained application to choose either format regardless of how the data is represented in CBOR.
 
 For example, when the original JSON string value is encoded as a CBOR base64url tag plus byte string, a constrained application accessing the value as a string MUST receive the base64url encoded value and not the decoded byte value.  If the constrained application instead accesses the value as a byte array it MUST get the decoded value if available.  
 
