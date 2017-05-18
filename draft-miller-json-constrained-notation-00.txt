@@ -14,13 +14,13 @@
 Abstract
 
    This specification addresses the challenges of using JavaScript
-   Object Notation (JSON) with constrained devices by providing a set of
-   mapping rules to Concise Binary Object Representation (CBOR) that
-   preserve all semantic information, such that the original JSON string
-   can be identically re-created.  JSON Constrained Notation can be used
-   directly by devices as a native data format, which can be represented
-   as JSON when necessary for diagnostics, compatibility, and ease of
-   integration with higher-level systems.
+   Object Notation (JSON) with constrained devices by providing a
+   standard set of mapping rules to Concise Binary Object Representation
+   (CBOR) that preserve all semantic information, such that the original
+   JSON string can be identically re-created.  JSON Constrained Notation
+   can also be used by devices as a native data format, which can then
+   be represented as JSON when necessary for diagnostics, compatibility,
+   and ease of integration with higher-level systems.
 
 Table of Contents
 
@@ -33,23 +33,23 @@ Table of Contents
        2.2.2.  Numbers . . . . . . . . . . . . . . . . . . . . . . .   4
        2.2.3.  Strings . . . . . . . . . . . . . . . . . . . . . . .   4
    3.  Reference Sets  . . . . . . . . . . . . . . . . . . . . . . .   5
-   4.  Canonical Form  . . . . . . . . . . . . . . . . . . . . . . .   5
-     4.1.  Formatting-only Whitespace  . . . . . . . . . . . . . . .   6
-     4.2.  String Escaping . . . . . . . . . . . . . . . . . . . . .   6
-   5.  Constrained API . . . . . . . . . . . . . . . . . . . . . . .   7
-   6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   7
-     6.1.  JSON  . . . . . . . . . . . . . . . . . . . . . . . . . .   7
-       6.1.1.  Input . . . . . . . . . . . . . . . . . . . . . . . .   7
-       6.1.2.  Optimized JSCN Encoding . . . . . . . . . . . . . . .   8
-       6.1.3.  Unoptimized JSCN Encoding . . . . . . . . . . . . . .  10
-     6.2.  JSON Web Token  . . . . . . . . . . . . . . . . . . . . .  12
-   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  13
-     7.1.  CBOR Tags . . . . . . . . . . . . . . . . . . . . . . . .  13
-     7.2.  JSCN Reference Sets Registry  . . . . . . . . . . . . . .  14
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  14
-   9.  Normative References  . . . . . . . . . . . . . . . . . . . .  14
-   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  15
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  15
+   4.  Canonical Form  . . . . . . . . . . . . . . . . . . . . . . .   6
+     4.1.  Formatting-only Whitespace  . . . . . . . . . . . . . . .   7
+     4.2.  String Escapes  . . . . . . . . . . . . . . . . . . . . .   8
+   5.  Constrained API . . . . . . . . . . . . . . . . . . . . . . .   9
+   6.  Examples  . . . . . . . . . . . . . . . . . . . . . . . . . .   9
+     6.1.  JSON  . . . . . . . . . . . . . . . . . . . . . . . . . .   9
+       6.1.1.  Input . . . . . . . . . . . . . . . . . . . . . . . .   9
+       6.1.2.  Optimized JSCN Encoding . . . . . . . . . . . . . . .  10
+       6.1.3.  Un-optimized JSCN Encoding  . . . . . . . . . . . . .  12
+     6.2.  JSON Web Token  . . . . . . . . . . . . . . . . . . . . .  14
+   7.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  15
+     7.1.  CBOR Tags . . . . . . . . . . . . . . . . . . . . . . . .  15
+     7.2.  JSCN Reference Sets Registry  . . . . . . . . . . . . . .  16
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  16
+   9.  References  . . . . . . . . . . . . . . . . . . . . . . . . .  16
+     9.1.  Normative References  . . . . . . . . . . . . . . . . . .  16
+     9.2.  URIs  . . . . . . . . . . . . . . . . . . . . . . . . . .  17
 
 
 
@@ -57,6 +57,9 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 1]
 
                                   JSCN                          May 2017
 
+
+   Appendix A.  Acknowledgements . . . . . . . . . . . . . . . . . .  17
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  18
 
 1.  Introduction
 
@@ -78,9 +81,9 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 1]
    A primary goal of JSCN is to enable all JSON Object Signing and
    Encryption (JOSE) standards ([RFC7515], [RFC7516], [RFC7517],
    [RFC7518], [RFC7519]) to be used unmodified in constrained
-   environments.  One result is that OpenID Connect (which is based on
-   JOSE) can be adopted as an identity management solution for the
-   Internet of Things.
+   environments.  One result is that OpenID Connect [1] (which utilizes
+   JSON Web Tokens [RFC7519]) can more easily be adopted as an identity
+   management solution for the Internet of Things.
 
    JSCN is designed to leverage, not replace, CBOR.  Instead, JSCN
    specifies rules for re-coding JSON structures by mapping them to
@@ -89,7 +92,7 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 1]
    strings with compact references.
 
    All transcoding software must operate on a UTF-8 JSON string whenever
-   complete round-trip compatibilityy to and from JSON is required,
+   complete round-trip compatibility to and from JSON is required,
    including mapping any contained non-structural whitespace (such as
    with JWTs for signature validation).  If a transcoder is only
    operating with an already parsed JSON value (the result of
@@ -102,9 +105,6 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 1]
    UTF-8 string references.  These references provide a mapping of
    common JSON string values to an integer that used to replace the
    string in the resulting CBOR during re-coding.  JSON string values
-   are also introspected for data that has a more compact CBOR type
-   (such as base64url and hexadecimal encoding).
-
 
 
 
@@ -114,13 +114,17 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 2]
                                   JSCN                          May 2017
 
 
-   The use of this specification can provide guarantees that the JSON
-   byte strings before and after re-coding will be identical across
-   implementations, but it does not currently require any resulting CBOR
-   byte strings to also be canonical.  It also defines basic API rules
-   for constrained software such that directly accessing the CBOR data
-   values will provide a uniform view to an application even if the
-   underlying CBOR has been re-coded in various ways.
+   are also introspected for data that has a more compact CBOR type
+   (such as base64url and hexadecimal encoding).
+
+   The use of this specification can ensure that a UTF-8 JSON string
+   before and after re-coding will be byte-for-byte identical across
+   implementations, whereas the CBOR encoding is not designed to have
+   this property and may vary based on implementation choices and
+   reference sets available.  There are basic API rules defined for
+   constrained software such that directly accessing the CBOR data
+   values will always provide a uniform view to an application across
+   variations in the underlying CBOR representation.
 
 1.1.  Terminology
 
@@ -147,18 +151,14 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 2]
          is the array offset to the replacement string and the first
          position in the array identifies the Reference Set.
 
-   o  Constrained Hints
+   o  Canonical Hints
 
-      *  A CBOR array of integers that indicate positional offsets and
-         hints for unicode escapes of strings or types of JSON
-         whitespace strings (, "\n", "\r", and "\t") for structures such
-         that when any CBOR encoded data is stringified into JSON it can
-         also optionally be corrected to exactly match the original JSON
+      *  A CBOR array of integers that indicate positional offsets for
+         JSON string escape sequences or structural formatting
+         whitespace strings (, "\n", "\r", and "\t") such that when any
+         CBOR encoded data is stringified into JSON it can also
+         optionally be corrected to exactly match the original JSON
          string.
-
-   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
-   document are to be interpreted as described in RFC 2119 [RFC2119].
 
 
 
@@ -169,6 +169,10 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 3]
 
                                   JSCN                          May 2017
 
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119 [RFC2119].
 
 2.  CBOR Encoding
 
@@ -214,10 +218,6 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 3]
    A JSCN encoder MUST round-trip test all JSON strings for possible
    encodings (base64url, base64, and hexadecimal) by attempting to
    decode and re-encode them.  If identical byte strings result, the
-   decoded value is tagged in CBOR with the encoding format (tags 21,
-   22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined
-   below MUST be included if the hexadecimal letters A-F are upper case
-   in the original JSON string.
 
 
 
@@ -225,6 +225,11 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 4]
 
                                   JSCN                          May 2017
 
+
+   decoded value is tagged in CBOR with the encoding format (tags 21,
+   22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined
+   below MUST be included if the hexadecimal letters A-F are upper case
+   in the original JSON string.
 
    A JSCN encoder MUST perform introspection on the resulting decoded
    byte string to determine if it begins with a JSON structure byte of
@@ -235,44 +240,39 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 4]
 
 3.  Reference Sets
 
-   o  The Constrained JSON Tag is followed by an array whose second item
-      identifies the Reference Set used in the data.  This is either a
-      Reference Set identifier or an array that defines an inline
-      Reference Set.
+   The Constrained JSON Tag is followed by an array whose second item
+   identifies the Reference Set used in the data.  This is either a
+   Reference Set identifier or an array that defines an inline Reference
+   Set.
 
-   o  A Reference Set identifier is a unique integer that maps to a
-      Reference Set known to applications using the set.  Public, well-
-      known reference sets can be registered as described in the IANA
-      Considerations section of this document.
+   A Reference Set identifier is a unique integer that maps to a
+   Reference Set known to applications using the set.  Public, well-
+   known reference sets can be registered as described in the IANA
+   Considerations section of this document.
 
-   o  A Reference Set definition is encoded as a JSCN array, where the
-      first value is the Reference Set identifier followed by all of the
-      UTF-8 string keys.  A key's position in the array is the byte
-      value with which it is replaced.
+   The Reference Set definition is encoded as a JSCN array, where the
+   first value is the Reference Set identifier followed by all of the
+   UTF-8 string keys.  A key's position in the array is the byte value
+   with which it is replaced.
 
-   o  A Reference Set can include another Reference Set by encoding the
-      second set's identifer in the JSCN array that defines the first
-      Reference Set.  Any byte strings in the definition array are then
-      replaced with the key from the references contained in the second
-      Reference Set.
+   Any Reference Set can include another Reference Set by encoding the
+   second set's identifer in the JSCN array that defines the first
+   Reference Set.  Any byte strings in the definition array are then
+   replaced with the key from the references contained in the second
+   Reference Set.
 
-   o  JSON UTF-8 strings representing keys or values are first checked
-      against all active references (if any) for possible replacement.
-      A replacement is always a CBOR byte string (type 2) of length 1,
-      where the single byte represents the index value of the key in the
-      references array from 1-255.  Value 0 and byte lengths greater
-      than 1 are reserved for future use.
+   JSON UTF-8 strings representing keys or values are first checked
+   against all active references (if any) for possible replacement.  A
+   replacement is always a CBOR byte string (type 2) of length 1, where
+   the single byte represents the index value of the key in the
+   references array from 1-255.  Value 0 and byte lengths greater than 1
+   are reserved for future use.
 
-   o  When a JSCN decoder generates JSON values from CBOR and it
-      encounters a CBOR byte string (type 2), single byte value MUST
-      match the array offset of the active references to be used as the
-      replacement for that byte string.
+   When a JSCN decoder generates JSON values from CBOR and it encounters
+   a CBOR byte string (type 2), single byte value MUST match the array
+   offset of the active references to be used as the replacement for
+   that byte string.
 
-4.  Canonical Form
-
-   This specification directly supports use-cases such as JSON Web
-   Tokens ([RFC7518]) where the canonical form of UTF-8 JSON strings
-   must always be available for validation.  This is accomplished by
 
 
 
@@ -282,53 +282,53 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 5]
                                   JSCN                          May 2017
 
 
+   The following is the encoded form of a Reference Set as defined by
+   the JSON array of "[1,"map","value","array","one","two","three","bool
+   ","neg","simple","ints"]":
+
+                  D4                       # tag(20)
+                     81                    # array(1)
+                        8B                 # array(11)
+                           01              # unsigned(1)
+                           63              # text(3)
+                              6D6170       # "map"
+                           65              # text(5)
+                              76616C7565   # "value"
+                           65              # text(5)
+                              6172726179   # "array"
+                           63              # text(3)
+                              6F6E65       # "one"
+                           63              # text(3)
+                              74776F       # "two"
+                           65              # text(5)
+                              7468726565   # "three"
+                           64              # text(4)
+                              626F6F6C     # "bool"
+                           63              # text(3)
+                              6E6567       # "neg"
+                           66              # text(6)
+                              73696D706C65 # "simple"
+                           64              # text(4)
+                              696E7473     # "ints"
+
+4.  Canonical Form
+
+   This specification directly supports use-cases such as JSON Web
+   Tokens ([RFC7518]) where the canonical form of UTF-8 JSON strings
+   must always be available for validation.  This is accomplished by
    optionally including any additional information to reproduce the
-   exact UTF-8 string as part of the containing Constrained JSON Tag.
+   exact UTF-8 string as an array of Canonical Hints included with the
+   Constrained JSON Tag.
 
-   This additional information is not typically necessary as most API
-   and JOSE generated JSON does not include any extra insignificant
-   bytes.  Even when required, this additional information also takes a
-   highly constrained form and is only additive to the contained CBOR
-   data values such that they remain uniform to any constrained
-   application.
+   These hints are not typically necessary as most machine-generated
+   JSON does not include any extra insignificant bytes by default, even
+   when included they do not need to be processed unless the original
+   canonical form is requested.  When required, these additional hints
+   also take a highly constrained form and are independently additive to
+   the contained CBOR data values such that those values remain uniform
+   to any constrained application.
 
-4.1.  Formatting-only Whitespace
 
-   When a Constrained JSON tag is present and the first item in the
-   tagged array is a CBOR structure (map or array), a third optional
-   item in the tagged array is a set of whitespace hints for any non-
-   structural whitespace contained in the original JSON object or array.
-
-   o  Whitespace hints are contianed in an array of integers that
-      indicate offsets of the locations of whitespace in an original
-      JSON string and lookup keys to what whitespace contents were
-      there.
-
-   o  Each offset integer is relative to the position of the previous
-      offset such that all integers are of small values.
-
-   o  A negative integer offset indicates a single ASCII space character
-      (0x20) at the offset of the positive value of that integer.
-
-   o  An unsigned integer offset is followed by another integer, where
-      unsigned values (0-23) indicate a whitespace string in a pre-
-      defined lookup table and negative values specify the number of
-      space characters (0x20) to repeat.
-
-   o  When adding back any whitespace to a JSON string the array must be
-      applied sequentially so that each new offset matches the original
-      JSON string position.
-
-   (TODO embed whitespace lookup table and examples)
-
-4.2.  String Escaping
-
-   JSON string values may contain escaped characters (as defined in
-   Section 7 of [RFC7159]) that become un-escaped in the process of re-
-   coding them into a CBOR UTF-8 string.  When the canonical form is
-   being preserved and any escaped characters are detected in the
-   process of converting them from JSON to CBOR, the string values MUST
-   be individually tagged as Constrained JSON where the first element in
 
 
 
@@ -338,8 +338,98 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 6]
                                   JSCN                          May 2017
 
 
-   the tagged array is the CBOR UTF-8 string value and the second value
-   is an array of positional integers similar to the whitespace hints.
+4.1.  Formatting-only Whitespace
+
+   When a Constrained JSON tag is present and the first item in the
+   tagged array is a CBOR structure (map or array), a third optional
+   item in the tagged array is a set of canonical whitespace hints for
+   any non-structural whitespace characters contained in the original
+   UTF-8 representation of the JSON object or array.
+
+   o  Whitespace hints are contained in an array of integers that
+      indicate offsets of the locations of whitespace characters in an
+      original JSON string, and lookup values identifying which
+      whitespace characters were there.
+
+   o  Each offset integer is relative to the position of the previous
+      offset such that all integers are of small values.
+
+   o  A negative integer offset indicates a single ASCII space character
+      (0x20) at the offset of the positive value of that integer.
+
+   o  An unsigned integer offset is followed by another integer, where
+      unsigned values (0-23) indicate a whitespace string in the pre-
+      defined lookup table, and negative values specify the number of
+      space characters (0x20) to repeat.
+
+   o  When re-inserting whitespace characters to a JSON string the array
+      must be applied sequentially so that each new offset matches the
+      original JSON string position.
+
+   The following 24 whitespace character hexadecimal sequences are used
+   as the shared reference lookup table by row (0-23) when processing
+   whitespace hints.  This table is constructed to minimize the number
+   of references commonly required while also allowing any possible
+   whitespace character sequences to be identified.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Miller & Saint-Andre    Expires November 19, 2017               [Page 7]
+
+                                  JSCN                          May 2017
+
+
+                      0a
+                      0a2020
+                      0a20202020
+                      0a202020202020
+                      0a2020202020202020
+                      0a20202020202020202020
+                      0a202020202020202020202020
+                      0a2020202020202020202020202020
+                      09
+                      0a09
+                      0a0909
+                      0a090909
+                      0a09090909
+                      0a0909090909
+                      0a090909090909
+                      0a09090909090909
+                      0a0909090909090909
+                      0d
+                      0d0a
+                      0d0a2020
+                      0d0a20202020
+                      0d0a09
+                      0d0a0909
+                      0d0a090909
+
+4.2.  String Escapes
+
+   JSON string values may contain escaped characters (as defined in
+   Section 7 of [RFC7159]) that become un-escaped in the process of re-
+   coding them into a CBOR UTF-8 string.  When the canonical form is
+   being preserved and any escaped characters are detected in the
+   process of converting them from JSON to CBOR, those string values
+   MUST be individually tagged as Constrained JSON where the first
+   element in the tagged array is the CBOR UTF-8 string value and the
+   second value is an array of positional integers similar to the
+   whitespace hints.
 
    When the position is an unsigned integer it indicates the UTF-8
    character at that position is to be escaped with the "\uXXXX" form
@@ -352,21 +442,36 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 6]
    Case Modifier.  Although extremely rare/unlikely, if the original
    escaping contained mixed-case hexadecimal then the positional integer
    will instead itself be an array of length two with the position being
+
+
+
+Miller & Saint-Andre    Expires November 19, 2017               [Page 8]
+
+                                  JSCN                          May 2017
+
+
    the first element and a 4-byte UTF-8 string of the mixed-case
    hexadecimal value the second element.
 
 5.  Constrained API
 
-   In order to ease the use of JSCN in contrained environments, an
-   implementation should make data values available both as native types
-   and as JSON strings; this enables a constrained application to choose
-   either format regardless of how the CBOR types represent the data.
+   In order to ease the use of JSCN in constrained environments, an
+   implementation should make data values available both as native CBOR
+   types and as JSON strings; this enables a constrained application to
+   choose either format regardless of how the data is represented in
+   CBOR.
 
-   For example, when a JSON string value is encoded in JSCN as a CBOR
-   base64url tag plus byte string, a constrained application can then
-   access either the original base64url string value or the CBOR binary
-   byte string as needed, but should not alter behavior based on which
-   way the value is encoded in CBOR.
+   For example, when the original JSON string value is encoded as a CBOR
+   base64url tag plus byte string, a constrained application accessing
+   the value as a string MUST receive the base64url encoded value and
+   not the decoded byte value.  If the constrained application instead
+   accesses the value as a byte array it MUST get the decoded value if
+   available.
+
+   The representation of the value in CBOR SHOULD NOT alter behavior of
+   the application, a string value encoded as tag plus byte array SHOULD
+   NOT be used as an indication that it is a binary value and only the
+   application can make this determination based on external context.
 
 6.  Examples
 
@@ -389,7 +494,14 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 6]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017               [Page 7]
+
+
+
+
+
+
+
+Miller & Saint-Andre    Expires November 19, 2017               [Page 9]
 
                                   JSCN                          May 2017
 
@@ -445,7 +557,7 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 7]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017               [Page 8]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 10]
 
                                   JSCN                          May 2017
 
@@ -501,15 +613,15 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 8]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017               [Page 9]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 11]
 
                                   JSCN                          May 2017
 
 
-6.1.3.  Unoptimized JSCN Encoding
+6.1.3.  Un-optimized JSCN Encoding
 
-   An unoptimized encoding would not use a Reference Set and would
-   preserve whitespace.  The unoptimized encoding would reduce the data
+   An un-optimized encoding would not use a Reference Set and would
+   preserve whitespace.  The un-optimized encoding would reduce the data
    from the 318 bytes (JSON) to 187 bytes (JSCN).
 
         D4                              # tag(20)
@@ -557,7 +669,7 @@ Miller & Saint-Andre    Expires November 19, 2017               [Page 9]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 10]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 12]
 
                                   JSCN                          May 2017
 
@@ -613,7 +725,7 @@ Miller & Saint-Andre    Expires November 19, 2017              [Page 10]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 11]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 13]
 
                                   JSCN                          May 2017
 
@@ -669,7 +781,7 @@ Miller & Saint-Andre    Expires November 19, 2017              [Page 11]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 12]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 14]
 
                                   JSCN                          May 2017
 
@@ -725,7 +837,7 @@ Miller & Saint-Andre    Expires November 19, 2017              [Page 12]
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 13]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 15]
 
                                   JSCN                          May 2017
 
@@ -760,31 +872,35 @@ Miller & Saint-Andre    Expires November 19, 2017              [Page 13]
 7.2.  JSCN Reference Sets Registry
 
    A future version of this document will request creation of a registry
-   for JSCN Reference Sets.
+   for JSCN Reference Sets and provide initial registrations for the
+   existing JOSE JWE, JWS, and JWA RFCs.
 
 8.  Security Considerations
 
    TODO
 
-9.  Normative References
+9.  References
+
+9.1.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
               <http://www.rfc-editor.org/info/rfc2119>.
 
-   [RFC3629]  Yergeau, F., "UTF-8, a transformation format of ISO
-              10646", STD 63, RFC 3629, DOI 10.17487/RFC3629, November
-              2003, <http://www.rfc-editor.org/info/rfc3629>.
 
 
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 14]
+Miller & Saint-Andre    Expires November 19, 2017              [Page 16]
 
                                   JSCN                          May 2017
 
+
+   [RFC3629]  Yergeau, F., "UTF-8, a transformation format of ISO
+              10646", STD 63, RFC 3629, DOI 10.17487/RFC3629, November
+              2003, <http://www.rfc-editor.org/info/rfc3629>.
 
    [RFC7049]  Bormann, C. and P. Hoffman, "Concise Binary Object
               Representation (CBOR)", RFC 7049, DOI 10.17487/RFC7049,
@@ -819,9 +935,24 @@ Miller & Saint-Andre    Expires November 19, 2017              [Page 14]
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
               <http://www.rfc-editor.org/info/rfc7519>.
 
+9.2.  URIs
+
+   [1] http://openid.net/connect/
+
 Appendix A.  Acknowledgements
 
    Thanks to Carsten Bormann and David Waite for their comments.
+
+
+
+
+
+
+
+Miller & Saint-Andre    Expires November 19, 2017              [Page 17]
+
+                                  JSCN                          May 2017
+
 
 Authors' Addresses
 
@@ -837,4 +968,41 @@ Authors' Addresses
 
 
 
-Miller & Saint-Andre    Expires November 19, 2017              [Page 15]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Miller & Saint-Andre    Expires November 19, 2017              [Page 18]
