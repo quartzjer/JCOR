@@ -31,7 +31,7 @@
 %   email = "stpeter@jabber.org"
 .# Abstract
 
-This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a standard set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can also be used by devices as a native data format, which can then be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
 {mainmatter}
 
@@ -41,15 +41,15 @@ Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted i
 
 This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
-A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE) standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) to be used unmodified in constrained environments.  One result is that OpenID Connect (which is based on JOSE) can be adopted as an identity management solution for the Internet of Things.
+A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE) standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) to be used unmodified in constrained environments.  One result is that [OpenID Connect](http://openid.net/connect/) (which utilizes JSON Web Tokens [@!RFC7519]) can more easily be adopted as an identity management solution for the Internet of Things.
 
 JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
 
-All transcoding software must operate on a UTF-8 JSON string whenever complete round-trip compatibilityy to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
+All transcoding software must operate on a UTF-8 JSON string whenever complete round-trip compatibility to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
 
 A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 
-The use of this specification can provide guarantees that the JSON byte strings before and after re-coding will be identical across implementations, but it does not currently require any resulting CBOR byte strings to also be canonical.  It also defines basic API rules for constrained software such that directly accessing the CBOR data values will provide a uniform view to an application even if the underlying CBOR has been re-coded in various ways.
+The use of this specification can ensure that a UTF-8 JSON string before and after re-coding will be byte-for-byte identical across implementations whereas the CBOR encoding is not designed to have this property and may vary.  There are basic API rules defined for constrained software such that directly accessing the CBOR data values will always provide a uniform view to an application even if the underlying CBOR has been re-coded in alternative forms.
 
 ## Terminology
 
