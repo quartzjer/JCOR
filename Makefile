@@ -36,7 +36,7 @@ test: jscn
 	./bin/jscn test/test1d.jscn test/test1d.json test/refs1.jscn
 	diff test/test1.json test/test1d.json
 
-spec: draft-miller-json-constrained-notation-01.html
+spec: draft-miller-json-constrained-notation-00.html
 
 %.xml: %.md
 	$(MMARK) --xml2 --page $< > $@
@@ -47,7 +47,7 @@ clean:
 	rm -f bin/jscn
 	rm -f bin/jwt2json
 	rm -f $(DEPS)
-	rm -f draft-miller-json-constrained-notation-01.xml
+	rm -f draft-miller-json-constrained-notation-00.xml
 
 req: 
 	@echo brew install go
