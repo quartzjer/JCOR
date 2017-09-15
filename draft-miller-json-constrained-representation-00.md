@@ -1,7 +1,7 @@
-% Title = "JSON Constrained Notation (JSCN)"
-% abbrev = "JSCN"
+% Title = "JSON Constrained Representation (JCoR)"
+% abbrev = "JCoR"
 % category = "std"
-% docName = "draft-miller-json-constrained-notation-00"
+% docName = "draft-miller-json-constrained-representation-00"
 % area = ""
 % workgroup = ""
 % ipr = "trust200902"
@@ -26,12 +26,11 @@
 % initials="P."
 % surname="Saint-Andre"
 % fullname="Peter Saint-Andre"
-% organization="Filament"
 %   [author.address]
-%   email = "peter@filament.com"
+%   email = "stpeter@jabber.org"
 .# Abstract
 
-This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a standard set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation can also be used by devices as a native data format, which can then be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+This specification addresses the challenges of using JavaScript Object Notation (JSON) with constrained devices by providing a standard set of mapping rules to Concise Binary Object Representation (CBOR) that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Representation (JCoR) can also be used by devices as a native data format, which can then be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
 {mainmatter}
 
@@ -39,15 +38,15 @@ This specification addresses the challenges of using JavaScript Object Notation 
 
 Although JavaScript Object Notation (JSON) [@!RFC7159] has been widely adopted in traditional networking and software environments, its use in embedded and constrained environments has been more limited because of the minimal storage and network capacities inherent in low-cost and low-power devices (see [@RFC7228]).
 
-This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Notation (JSCN) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
+This specification addresses the challenges of using JSON with constrained devices by defining a set of mapping rules to Concise Binary Object Representation (CBOR) [@!RFC7049] that preserve all semantic information, such that the original JSON string can be identically re-created.  JSON Constrained Representation (JCoR) can be used directly by devices as a native data format, which can be represented as JSON when necessary for diagnostics, compatibility, and ease of integration with higher-level systems.
 
-A primary goal of JSCN is to enable all JSON Object Signing and Encryption (JOSE) standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) to be used unmodified in constrained environments.  One result is that [OpenID Connect](http://openid.net/connect/) (which utilizes JSON Web Tokens [@!RFC7519]) can more easily be adopted as an identity management solution for the Internet of Things.
+A primary goal of JCoR is to enable all JSON Object Signing and Encryption (JOSE) standards ([@!RFC7515], [@!RFC7516], [@!RFC7517], [@!RFC7518], [@!RFC7519]) to be used unmodified in constrained environments.  One result is that [OpenID Connect](http://openid.net/connect/) (which utilizes JSON Web Tokens [@!RFC7519]) can more easily be adopted as an identity management solution for the Internet of Things.
 
-JSCN is designed to leverage, not replace, CBOR. Instead, JSCN specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
+JCoR is designed to leverage, not replace, CBOR. Instead, JCoR specifies rules for re-coding JSON structures by mapping them to their CBOR parallels whenever possible, and then increasing the efficiency through introspection and replacement of well-known strings with compact references.
 
 All transcoding software MUST operate on a UTF-8 JSON string whenever complete round-trip compatibility to and from JSON is required, including mapping any contained non-structural whitespace (such as with JWTs for signature validation).  If a transcoder is only operating with an already parsed JSON value (the result of `JSON.parse()` in JavaScript for instance), the round-trip can only guarantee semantic compatibility of the values as represented in that parsed context (only the JavaScript object will always match).
 
-A significant reduction in space is also provided in JSCN when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
+A significant reduction in space is also provided in JCoR when the device and application contexts can make use of built-in or shared UTF-8 string references.  These references provide a mapping of common JSON string values to an integer that used to replace the string in the resulting CBOR during re-coding.  JSON string values are also introspected for data that has a more compact CBOR type (such as base64url and hexadecimal encoding).
 
 The use of this specification can ensure that a UTF-8 JSON string before and after re-coding will be byte-for-byte identical across implementations, whereas the CBOR encoding is not designed to have this property and MAY vary based on implementation choices and reference sets available.  There are basic API rules defined for constrained software such that directly accessing the CBOR data values will always provide a uniform view to an application across variations in the underlying CBOR representation.
 
@@ -58,9 +57,9 @@ Many terms used in this document are defined in the specifications for JSON [@!R
 - Constrained JSON Tag
   - The CBOR tag registered in this specification to indicate an array that contains JSON data encoded as CBOR according to this specification.
 - Reference
-  - A pointer within JSCN data that refers to a well-known UTF-8 string by using a CBOR byte string of length one, where the byte value is the lookup identifier for the Reference.
+  - A pointer within JCoR data that refers to a well-known UTF-8 string by using a CBOR byte string of length one, where the byte value is the lookup identifier for the Reference.
 - Reference Set
-  - A CBOR array of UTF-8 strings that are used to replace any Reference within any JSCN data, where the Reference identifier is the array offset to the replacement string and the first position in the array identifies the Reference Set.
+  - A CBOR array of UTF-8 strings that are used to replace any Reference within any JCoR data, where the Reference identifier is the array offset to the replacement string and the first position in the array identifies the Reference Set.
 - Canonical Hints
   - A CBOR array of integers that indicate positional offsets for JSON string escape sequences or structural formatting whitespace strings (` `, `\n`, `\r`, and `\t`) such that when any CBOR encoded data is stringified into JSON it can also optionally be corrected to exactly match the original JSON string.
 
@@ -68,7 +67,7 @@ The key words "**MUST**", "**MUST NOT**", "**REQUIRED**", "**SHALL**", "**SHALL 
 
 # CBOR Encoding
 
-JSCN encodes JSON data types to CBOR data types as described in the following sections.
+JCoR encodes JSON data types to CBOR data types as described in the following sections.
 
 ## Structured Types
 
@@ -82,7 +81,7 @@ The JSON literal names `false`, `true`, and `null` are serialized to the CBOR ma
 
 ### Numbers 
 
-A JSCN encoder attempts to encode a JSON number as a CBOR unsigned integer (type 0), negative integer (type 1), or float (type 7) and then test for compatibility by round-tripping the CBOR data item back to a JSON number.  If the resulting JSON number is not equivalent to the input number, the encoder MUST instead encode it as a CBOR Bigfloat (tag 5).
+A JCoR encoder attempts to encode a JSON number as a CBOR unsigned integer (type 0), negative integer (type 1), or float (type 7) and then test for compatibility by round-tripping the CBOR data item back to a JSON number.  If the resulting JSON number is not equivalent to the input number, the encoder MUST instead encode it as a CBOR Bigfloat (tag 5).
 
 The JSON exponent value (if any) is encoded as a CBOR exponent (tag 4).  If the contained `e` symbol is upper case in JSON, the "Upper Case Modifier" tag defined below MUST be included.
 
@@ -92,9 +91,9 @@ A JSON string is normally encoded as an un-escaped CBOR UTF-8 string (type 3), i
 
 #### Base64 / Base16 Encoded
 
-A JSCN encoder MUST round-trip test all JSON strings for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them.  If identical byte strings result, the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined below MUST be included if the hexadecimal letters A-F are upper case in the original JSON string.
+A JCoR encoder MUST round-trip test all JSON strings for possible encodings (base64url, base64, and hexadecimal) by attempting to decode and re-encode them.  If identical byte strings result, the decoded value is tagged in CBOR with the encoding format (tags 21, 22, and 23).  For hexadecimal, the "Upper Case Modifier" tag defined below MUST be included if the hexadecimal letters A-F are upper case in the original JSON string.
 
-A JSCN encoder MUST perform introspection on the resulting decoded byte string to determine if it begins with a JSON structure byte of '{' or '['.  The encoder SHOULD then round-trip test the string as a possible JSON object or array so that it can encode the string more efficiently into a CBOR data item instead of a byte string (this pattern is common in the JOSE specification).
+A JCoR encoder MUST perform introspection on the resulting decoded byte string to determine if it begins with a JSON structure byte of '{' or '['.  The encoder SHOULD then round-trip test the string as a possible JSON object or array so that it can encode the string more efficiently into a CBOR data item instead of a byte string (this pattern is common in the JOSE specification).
 
 # Reference Sets
 
@@ -102,13 +101,13 @@ The Constrained JSON Tag is followed by an array whose second item identifies th
 
 A Reference Set identifier is a unique integer that maps to a Reference Set known to applications using the set.  Public, well-known reference sets can be registered as described in the IANA Considerations section of this document.
 
-The Reference Set definition is encoded as a JSCN array, where the first value is the Reference Set identifier followed by all of the UTF-8 string keys.  A key's position in the array is the byte value with which it is replaced.
+The Reference Set definition is encoded as a JCoR array, where the first value is the Reference Set identifier followed by all of the UTF-8 string keys.  A key's position in the array is the byte value with which it is replaced.
 
-Any Reference Set can include another Reference Set by encoding the second set's identifer in the JSCN array that defines the first Reference Set.  Any byte strings in the definition array are then replaced with the key from the references contained in the second Reference Set.
+Any Reference Set can include another Reference Set by encoding the second set's identifer in the JCoR array that defines the first Reference Set.  Any byte strings in the definition array are then replaced with the key from the references contained in the second Reference Set.
 
 JSON UTF-8 strings representing keys or values are first checked against all active references (if any) for possible replacement.  A replacement is always a CBOR byte string (type 2) of length 1, where the single byte represents the index value of the key in the references array from 1-255.  Value 0 and byte lengths greater than 1 are reserved for future use.
 
-When a JSCN decoder generates JSON values from CBOR and it encounters a CBOR byte string (type 2), single byte value MUST match the array offset of the active references to be used as the replacement for that byte string.
+When a JCoR decoder generates JSON values from CBOR and it encounters a CBOR byte string (type 2), single byte value MUST match the array offset of the active references to be used as the replacement for that byte string.
 
 The following is the encoded form of a Reference Set as defined by the JSON array of `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]`:
 
@@ -195,7 +194,7 @@ When the original escaping in the `\uXXXX` form was with upper case hexadecimal 
 
 # Constrained API
 
-In order to ease the use of JSCN in constrained environments, an implementation SHOULD make data values available both as native CBOR types and as JSON strings; this enables a constrained application to choose either format regardless of how the data is represented in CBOR.
+In order to ease the use of JCoR in constrained environments, an implementation SHOULD make data values available both as native CBOR types and as JSON strings; this enables a constrained application to choose either format regardless of how the data is represented in CBOR.
 
 For example, when the original JSON string value is encoded as a CBOR base64url tag plus byte string, a constrained application accessing the value as a string MUST receive the base64url encoded value and not the decoded byte value.  If the constrained application instead accesses the value as a byte array it MUST get the decoded value if available.  
 
@@ -207,7 +206,7 @@ The representation of the value in CBOR SHOULD NOT alter behavior of the applica
 
 ### Input
 
-Consider the following JSON as input to a JSCN encoder.
+Consider the following JSON as input to a JCoR encoder.
 
 ```json
 {
@@ -242,13 +241,13 @@ Consider the following JSON as input to a JSCN encoder.
 }
 ```
 
-### Optimized JSCN Encoding
+### Optimized JCoR Encoding
 
 An optimized encoding would remove whitespace and use a Reference Set. Here the references would be:
 
 `[1,"map","value","array","one","two","three","bool","neg","simple","ints"]`
 
-The resulting JSCN encoding is 90 bytes compared to 318 bytes for the JSON input. 
+The resulting JCoR encoding is 90 bytes compared to 318 bytes for the JSON input. 
 
 ``` ascii-art
 D4                              # tag(20)
@@ -299,9 +298,9 @@ D4                              # tag(20)
       01                        # unsigned(1)
 ```
 
-### Un-optimized JSCN Encoding
+### Un-optimized JCoR Encoding
 
-An un-optimized encoding would not use a Reference Set and would preserve whitespace. The un-optimized encoding would reduce the data from the 318 bytes (JSON) to 187 bytes (JSCN).
+An un-optimized encoding would not use a Reference Set and would preserve whitespace. The un-optimized encoding would reduce the data from the 318 bytes (JSON) to 187 bytes (JCoR).
 
 
 ``` ascii-art
@@ -441,7 +440,7 @@ mFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9",
 7HgQ"}
 ```
 
-Using a Reference Set of `[1,"payload","signature","protected","alg","HS256","sub","name","admin"]`, the JSCN encoding would be 80 bytes.
+Using a Reference Set of `[1,"payload","signature","protected","alg","HS256","sub","name","admin"]`, the JCoR encoding would be 80 bytes.
 
 ``` ascii-art
 D4                                      # tag(20)
@@ -502,11 +501,11 @@ The tags to be assigned are described below.
 Tag             20 (Constrained JSON)
 Data Item       array
 Semantics       The first value in the array is a constrained 
-                JSON data item encoded using JSCN, optionally 
+                JSON data item encoded using JCoR, optionally 
                 followed by an integer or array identifying any 
                 embedded references, and then an optional array 
                 of canonical hints (if any).
-Reference       http://quartzjer.github.io/JSCN
+Reference       http://quartzjer.github.io/JCoR
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 
 Tag             31 (Upper Case Modifier)
@@ -515,13 +514,13 @@ Semantics       Indicates that the data item following contains
                 values where the upper case is semantically 
                 important when interpreted in a UTF-8 string 
                 context.
-Reference       http://quartzjer.github.io/JSCN
+Reference       http://quartzjer.github.io/JCoR
 Contact         Jeremie Miller <jeremie.miller@gmail.com>
 ```
 
-## JSCN Reference Sets Registry
+## JCoR Reference Sets Registry
 
-A future version of this document will request creation of a registry for JSCN Reference Sets and provide initial registrations for the existing JOSE JWE, JWS, and JWA RFCs.
+A future version of this document will request creation of a registry for JCoR Reference Sets and provide initial registrations for the existing JOSE JWE, JWS, and JWA RFCs.
 
 # Security Considerations
 
