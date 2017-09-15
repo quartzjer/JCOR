@@ -46,8 +46,6 @@ spec: draft-miller-json-constrained-notation-00.html
 clean:
 	rm -f bin/jscn
 	rm -f bin/jwt2json
-	rm -f $(DEPS)
-	rm -f draft-miller-json-constrained-notation-00.xml
 
 req: 
 	@echo brew install go
@@ -55,4 +53,4 @@ req:
 	@echo go get github.com/miekg/mmark/mmark
 	@echo pip3 install xml2rfc
 
-.PHONY: all jscn clean test req spec
+.PHONY: all jscn test req spec
