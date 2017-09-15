@@ -1,4 +1,4 @@
-# JCoR - JSON Constrained Representation
+# JCOR - JSON Constrained Representation
 
 This repo contains the [Internet-Draft](https://datatracker.ietf.org/doc/draft-miller-json-constrained-representation/) and a working implementation in C.
 
