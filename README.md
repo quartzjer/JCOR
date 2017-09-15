@@ -1,12 +1,12 @@
-# JSCN - JSON Constrained Notation
+# JCoR - JSON Constrained Representation
 
-This repo contains the working [IETF Draft](http://quartzjer.github.io/JSCN/draft-miller-json-constrained-notation-00.html) and a working implementation in C.
+This repo contains the [Internet-Draft](https://datatracker.ietf.org/doc/draft-miller-json-constrained-representation/) and a working implementation in C.
 
 ## Draft Spec
 
 This spec enables any existing JSON or JWT to be easily re-coded into minimized CBOR for constrained networks and devices with zero loss of data or cryptographic integrity.
 
-The goal is to continue improving the draft with feedback until it can be formally accepted into an IETF working group and on a standards track.
+The goal is to continue improving the draft with feedback until it can be formally accepted into an IETF working group on the standards track.
 
 ## Code/Tools
 
