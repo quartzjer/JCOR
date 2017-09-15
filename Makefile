@@ -53,4 +53,4 @@ req:
 	@echo go get github.com/miekg/mmark/mmark
 	@echo pip3 install xml2rfc
 
-.PHONY: all jscn test req spec
+.PHONY: all jscn clean test req spec
