@@ -1,4 +1,4 @@
-bin/jscn
+bin/jcor
 bin/jwt2json
 *.dSYM
 *.o

@@ -14,7 +14,7 @@ GOPATH?=/usr/local/gopath
 MMARK?=$(GOPATH)/bin/mmark
 XML2RFC?=xml2rfc
 
-all: jscn jwt2json
+all: jcor jwt2json
 
 %.o : %.c $(HEADERS)
 	$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
@@ -22,18 +22,18 @@ all: jscn jwt2json
 bin/% : test/%.o $(DEPS)
 	$(CC) $(INCLUDE) $(CFLAGS) $(patsubst bin/%,test/%.o,$@) -o $@ $(OBJECTS)
 
-jscn: $(DEPS)
-	$(CC) $(CFLAGS) -o bin/jscn bin/jscn.o $(OBJECTS)
+jcor: $(DEPS)
+	$(CC) $(CFLAGS) -o bin/jcor bin/jcor.o $(OBJECTS)
 
 jwt2json: $(DEPS)
 	$(CC) $(CFLAGS) -o bin/jwt2json bin/jwt2json.o $(OBJECTS)
 
-test: jscn
-	./bin/jscn test/test1.json test/test1.jscn
-	hexdump test/test1.jscn  | cut -c 8-
-	./bin/jscn test/test1.json test/test1d.jscn test/refs1.jscn true
-	hexdump test/test1d.jscn  | cut -c 8-
-	./bin/jscn test/test1d.jscn test/test1d.json test/refs1.jscn
+test: jcor
+	./bin/jcor test/test1.json test/test1.jcor
+	hexdump test/test1.jcor  | cut -c 8-
+	./bin/jcor test/test1.json test/test1d.jcor test/refs1.jcor true
+	hexdump test/test1d.jcor  | cut -c 8-
+	./bin/jcor test/test1d.jcor test/test1d.json test/refs1.jcor
 	diff test/test1.json test/test1d.json
 
 spec: draft-miller-json-constrained-representation-00.html
@@ -44,7 +44,7 @@ spec: draft-miller-json-constrained-representation-00.html
 	$(XML2RFC) --html --text $<
 
 clean:
-	rm -f bin/jscn
+	rm -f bin/jcor
 	rm -f bin/jwt2json
 
 req: 
@@ -53,4 +53,4 @@ req:
 	@echo go get github.com/miekg/mmark/mmark
 	@echo pip3 install xml2rfc
 
-.PHONY: all jscn clean test req spec
+.PHONY: all jcor clean test req spec

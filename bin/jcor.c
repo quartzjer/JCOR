@@ -107,7 +107,7 @@ int main(int argc, char **argv)
       lout = jscn->length;
       printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
     }
-  }else if(strstr(file_in,".jscn")){
+  }else if(strstr(file_in,".jcor")){
     if(!(jscn = jscn_load(bin,lin))) {
       printf("jscn file failed to load: %s\n",file_in);
       return 4;
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
       printf("serialized cbor[%ld] to json[%ld]\n", lin, lout);
     }
   }else{
-    ret = printf("file must be .json or .jscn: %s\n",file_in);
+    ret = printf("file must be .json or .jcor: %s\n",file_in);
   }
 
   free(bin);
