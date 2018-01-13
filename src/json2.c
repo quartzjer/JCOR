@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "jscn.h"
+#include "jcor.h"
 #include "js0n.h"
 #include "base64.h"
 #include "base16.h"
@@ -15,7 +15,7 @@ const uint8_t ws_tablen[24] = { 1, 3, 5, 7, 9, 11, 13, 15, 1, 2, 3, 4, 5, 6, 7, 
 #include "base16.h"
 #include "base64.h"
 #include "js0n.h"
-#include "jscn.h"
+#include "jcor.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include "jscn.h"
+#include "jcor.h"
 
 uint8_t *load(char *file, size_t *len)
 {

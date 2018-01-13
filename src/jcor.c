@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "jscn.h"
+#include "jcor.h"
 
 // loads raw CBOR and validates as JSCN, caller must free
 jscn_t jscn_load(uint8_t *cbor, uint32_t len)

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "jscn.h"
+#include "jcor.h"
 #include "base64.h"
 #include "base16.h"
 
