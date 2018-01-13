@@ -64,15 +64,15 @@ static uint8_t *on2cn_part(uint8_t *out, uint8_t *in, size_t inlen, bool iskey, 
         out += cb0r_write(out, CB0R_TAG, 21);
 
         // check if the decoded is itself JSON 
-        jscn_t jscn = jscn_json2((char*)buff, blen, refs, true);
-        char *json = jscn_2json(jscn, refs, true);
+        jcor_t jcor = jcor_json2((char*)buff, blen, refs, true);
+        char *json = jcor_2json(jcor, refs, true);
         if(json && memcmp(buff, json, blen) == 0) {
           // TODO support auto between raw data and tagged
-          uint32_t blen2 = jscn->data.end - jscn->data.start;
+          uint32_t blen2 = jcor->data.end - jcor->data.start;
           printf("recursed %u < %u: %s\n", blen2, blen, json);
-          memcpy(out, jscn->data.start, blen2);
+          memcpy(out, jcor->data.start, blen2);
           out += blen2;
-          free(jscn);
+          free(jcor);
           free(json);
           return out;
         }
@@ -205,8 +205,8 @@ static uint8_t *ws2cn(uint8_t *out, uint8_t *in, size_t inlen, uint32_t *count)
   return out;
 }
 
-// recodes raw JSON into JSCN (caller must free returned pointer)
-jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
+// recodes raw JSON into JCOR (caller must free returned pointer)
+jcor_t jcor_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
 {
   // validate any json first w/ full scan by looking for invalid key
   size_t err = 0;
@@ -215,7 +215,7 @@ jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
   if(err) return 0;
   if(!ws[0]) whitespace = false;
 
-  // first make the JSCN tag and array
+  // first make the JCOR tag and array
   uint8_t *out = malloc(len);
   uint8_t *at = out;
   at += cb0r_write(at, CB0R_TAG, 20);
@@ -245,6 +245,6 @@ jscn_t jscn_json2(char *json, uint32_t len, cb0r_t refs, bool whitespace)
     at = ws2cn(at, (uint8_t *)json, len, &count);
   }
 
-  return jscn_load(out, at - out);
+  return jcor_load(out, at - out);
 }
 

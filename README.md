@@ -10,6 +10,6 @@ The goal is to continue improving the draft with feedback until it can be formal
 
 ## Code/Tools
 
-The included implementation is permissively [MIT icensed](http://quartzjer.github.io/JSCN/LICENSE) and small / optimized for embedded usage, improvements welcome.
+The included implementation is permissively [MIT icensed](http://quartzjer.github.io/JCOR/LICENSE) and small / optimized for embedded usage, improvements welcome.
 
 The next step planned is to add/create an embedded-friendly API for accessing the constrained JSON directly.

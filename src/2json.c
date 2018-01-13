@@ -88,24 +88,24 @@ static size_t cn2on_part(uint8_t *in, size_t inlen, char *out, uint32_t skip, cb
   return outlen;
 }
 
-// converts JSCN back into null-terminated JSON, adds back whitespace if requested
-char *jscn_2json(jscn_t jscn, cb0r_t refs, bool whitespace)
+// converts JCOR back into null-terminated JSON, adds back whitespace if requested
+char *jcor_2json(jcor_t jcor, cb0r_t refs, bool whitespace)
 {
-  if(!jscn) return NULL;
+  if(!jcor) return NULL;
 
-  char *json = malloc(jscn->length * 2);
+  char *json = malloc(jcor->length * 2);
 
-  uint32_t outlen = cn2on_part(jscn->data.start, jscn->data.end - jscn->data.start, json, 0, refs, whitespace);
+  uint32_t outlen = cn2on_part(jcor->data.start, jcor->data.end - jcor->data.start, json, 0, refs, whitespace);
   json[outlen] = 0;
 
   // check for whitespace hints
-  if(whitespace && jscn->ws.type == CB0R_ARRAY) {
+  if(whitespace && jcor->ws.type == CB0R_ARRAY) {
     printf("using whitespace hints\n");
     cb0r_s item = {0,};
     uint32_t i = 0;
     char *at = json;
     while(item.type < CB0R_ERR) {
-      cb0r(cb0r_value(&(jscn->ws)), jscn->ws.end, i++, &item);
+      cb0r(cb0r_value(&(jcor->ws)), jcor->ws.end, i++, &item);
 
       // insert single space first
       if(item.type == CB0R_NEG) {
@@ -120,7 +120,7 @@ char *jscn_2json(jscn_t jscn, cb0r_t refs, bool whitespace)
       // insert variable lengths
       if(item.type == CB0R_INT) {
         at += item.value;
-        cb0r(cb0r_value(&(jscn->ws)), jscn->ws.end, i++, &item);
+        cb0r(cb0r_value(&(jcor->ws)), jcor->ws.end, i++, &item);
         // repeating whitespaces
         if(item.type == CB0R_NEG) {
           memmove(at + item.value, at, outlen - (at - json));

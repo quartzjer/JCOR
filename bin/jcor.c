@@ -66,7 +66,7 @@ int main(int argc, char **argv)
   // TODO use real arg parser/syntax
   if(argc < 3)
   {
-    printf("Usage (args may be swapped): jscn file.json file.jscn\n");
+    printf("Usage (args may be swapped): jcor file.json file.jcor\n");
     return -1;
   }
   char *file_in = argv[1];
@@ -84,8 +84,8 @@ int main(int argc, char **argv)
   if(file_refs) {
     size_t dlen = 0;
     uint8_t *dbin = load(file_refs,&dlen);
-    jscn_t dref = NULL;
-    if(!dbin || dlen <= 0 || !(dref = jscn_load(dbin, dlen)) || dref->data.type != CB0R_ARRAY) {
+    jcor_t dref = NULL;
+    if(!dbin || dlen <= 0 || !(dref = jcor_load(dbin, dlen)) || dref->data.type != CB0R_ARRAY) {
       printf("refs file invalid: %s %u\n", file_refs, dref->data.type);
       return -1;
     } else {
@@ -93,27 +93,27 @@ int main(int argc, char **argv)
     }
   }
 
-  jscn_t jscn = NULL;
+  jcor_t jcor = NULL;
   int ret = 0;
   size_t lout = 0;
   uint8_t *bout = NULL;
 
   if(strstr(file_in,".json"))
   {
-    if(!(jscn = jscn_json2((char *)bin, lin, refs, whitespace))) {
+    if(!(jcor = jcor_json2((char *)bin, lin, refs, whitespace))) {
       ret = printf("JSON parsing failed: %s\n",file_in);
     } else {
-      bout = jscn->start;
-      lout = jscn->length;
+      bout = jcor->start;
+      lout = jcor->length;
       printf("serialized json[%ld] to cbor[%ld]\n", lin, lout);
     }
   }else if(strstr(file_in,".jcor")){
-    if(!(jscn = jscn_load(bin,lin))) {
-      printf("jscn file failed to load: %s\n",file_in);
+    if(!(jcor = jcor_load(bin,lin))) {
+      printf("jcor file failed to load: %s\n",file_in);
       return 4;
     }
     // TODO refs lookup on demand
-    if(!(bout = (uint8_t *)jscn_2json(jscn, refs, true))) {
+    if(!(bout = (uint8_t *)jcor_2json(jcor, refs, true))) {
       ret = printf("JSON generation failed: %s\n", file_in);
     } else {
       lout = strlen((char*)bout);
