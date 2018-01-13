@@ -2,4 +2,3 @@ bin/jscn
 bin/jwt2json
 *.dSYM
 *.o
-json_constrained_notation.xml

@@ -36,7 +36,7 @@ test: jscn
 	./bin/jscn test/test1d.jscn test/test1d.json test/refs1.jscn
 	diff test/test1.json test/test1d.json
 
-spec: draft-miller-json-constrained-notation-00.html
+spec: draft-miller-json-constrained-representation-00.html
 
 %.xml: %.md
 	$(MMARK) --xml2 --page $< > $@
